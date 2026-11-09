@@ -2,8 +2,13 @@ name: Build APK
 
 on:
   push:
+    branches: ["**"]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -16,10 +21,22 @@ jobs:
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
       - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk TV-Remote.apk
       - uses: actions/upload-artifact@v4
         with:
           name: AndroidTvRemote-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: TV-Remote.apk
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TV Remote ${{ github.ref_name }}
+          files: TV-Remote.apk
+          body: |
+            ريموت لتلفزيون Android TV / Google TV.
+            حمّل ملف TV-Remote.apk تحت وثبّته على جوالك (اسمح بالتثبيت من مصادر غير معروفة).
+            الجوال والتلفزيون لازم يكونون على نفس الواي فاي.
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest

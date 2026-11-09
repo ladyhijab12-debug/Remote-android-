@@ -1,6 +1,10 @@
-# ريموت Android TV — Android TV Remote
+# ريموت التلفزيون — Android TV و Samsung
 
-تطبيق أندرويد للجوال يتحكم في أي تلفزيون **Android TV / Google TV** عبر الواي فاي، بنفس البروتوكول اللي يستخدمه ريموت Google الرسمي (Android TV Remote Protocol v2). ما يحتاج وضع المطوّر ولا ADB.
+تطبيق أندرويد للجوال يتحكم عبر الواي فاي في:
+- تلفزيونات **Android TV / Google TV** (سوني، TCL، شاومي، فيليبس، …) بنفس بروتوكول ريموت Google الرسمي.
+- تلفزيونات **Samsung** الذكية (Tizen، موديلات 2016 وأحدث).
+
+ما يحتاج وضع المطوّر ولا ADB.
 
 ## المميزات
 - يلقى التلفزيونات على نفس الشبكة تلقائياً (mDNS)، أو تكتب عنوان IP يدوياً.
@@ -14,7 +18,9 @@
 ## طريقة الاستخدام
 1. خلّ الجوال والتلفزيون على نفس شبكة الواي فاي.
 2. افتح التطبيق واختر التلفزيون من القائمة (أو اكتب IP التلفزيون).
-3. أول مرة بيظهر رمز على التلفزيون: اكتبه في التطبيق واضغط «اقتران».
+3. أول مرة:
+   - **Android TV:** بيظهر رمز على التلفزيون، اكتبه في التطبيق واضغط «اقتران».
+   - **Samsung:** بيطلع طلب على شاشة التلفزيون، اضغط «سماح» بالريموت الأصلي.
 4. خلاص، الريموت جاهز.
 
 ## تحميل الـ APK
@@ -34,4 +40,5 @@
 - `protocol/RemoteClient.kt` — remote channel on TCP 6466: answers the TV's configure / set-active / ping messages and sends key presses and app links.
 - `protocol/Proto.kt` — tiny hand-written protobuf encoder/decoder (no protobuf toolchain needed).
 - `protocol/CertificateManager.kt` — generates the client certificate once (BouncyCastle) and keeps it in app storage, so the TV stays paired.
-- `app/src/test/.../FakeTvTest.kt` — runs pairing and a remote session against a simulated TV over real TLS sockets.
+- `protocol/SamsungClient.kt` — Samsung Tizen WebSocket API (wss 8002, falls back to ws 8001); the TV asks the user to allow the app once and returns a token that is saved for later. Samsung TVs are discovered with SSDP.
+- `app/src/test/.../FakeTvTest.kt`, `FakeSamsungTest.kt` — run pairing and remote sessions against simulated TVs.

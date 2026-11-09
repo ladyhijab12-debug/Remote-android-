@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.remote.androidtv.protocol.PairingClient
+import com.remote.androidtv.protocol.TvBrand
 
 /** Start screen: pick a TV (found automatically or typed by IP), pair if needed, then open the remote. */
 class DevicesActivity : AppCompatActivity() {
@@ -43,12 +44,12 @@ class DevicesActivity : AppCompatActivity() {
         list.adapter = adapter
         list.emptyView = findViewById(R.id.empty)
         list.setOnItemClickListener { _, _, pos, _ ->
-            adapter.getItem(pos)?.let { connect(it.host, it.name) }
+            adapter.getItem(pos)?.let { connect(it.host, it.name, it.brand) }
         }
 
         findViewById<Button>(R.id.connect_button).setOnClickListener {
             val host = ipInput.text.toString().trim()
-            if (host.isEmpty()) ipInput.error = getString(R.string.enter_ip) else connect(host, null)
+            if (host.isEmpty()) ipInput.error = getString(R.string.enter_ip) else connect(host, null, null)
         }
 
         discovery = TvDiscovery(this) { devices ->
@@ -58,7 +59,8 @@ class DevicesActivity : AppCompatActivity() {
 
         val lastHost = prefs.getString(KEY_HOST, null)
         if (savedInstanceState == null && lastHost != null) {
-            connect(lastHost, prefs.getString(KEY_NAME, null))
+            val brand = prefs.getString(KEY_BRAND, null)?.let { runCatching { TvBrand.valueOf(it) }.getOrNull() }
+            connect(lastHost, prefs.getString(KEY_NAME, null), brand)
         }
     }
 
@@ -79,17 +81,25 @@ class DevicesActivity : AppCompatActivity() {
         status.visibility = if (message == null) View.GONE else View.VISIBLE
     }
 
-    private fun connect(host: String, name: String?) {
+    private fun connect(host: String, name: String?, brand: TvBrand?) {
         if (busy) return
         setBusy(true, getString(R.string.connecting, name ?: host))
-        TvConnection.connect(host, name) { result ->
+        TvConnection.connect(host, name, brand, onDetected = { detected ->
+            // A Samsung TV asks for permission on its screen the first time.
+            if (detected == TvBrand.SAMSUNG) setBusy(true, getString(R.string.samsung_allow))
+        }) { result ->
             when (result) {
                 TvConnection.Result.Ok -> {
                     setBusy(false, null)
-                    prefs.edit().putString(KEY_HOST, host).putString(KEY_NAME, name).apply()
+                    prefs.edit()
+                        .putString(KEY_HOST, host)
+                        .putString(KEY_NAME, TvConnection.tvName)
+                        .putString(KEY_BRAND, TvConnection.brand?.name)
+                        .apply()
                     startActivity(Intent(this, RemoteActivity::class.java))
                 }
                 TvConnection.Result.NeedsPairing -> startPairing(host, name)
+                TvConnection.Result.Denied -> setBusy(false, getString(R.string.samsung_denied))
                 is TvConnection.Result.Failed ->
                     setBusy(false, getString(R.string.connect_failed, result.error.localizedMessage ?: ""))
                 TvConnection.Result.WrongCode -> setBusy(false, null)
@@ -143,7 +153,7 @@ class DevicesActivity : AppCompatActivity() {
                         TvConnection.Result.Ok -> {
                             setBusy(false, null)
                             Toast.makeText(this, R.string.paired, Toast.LENGTH_SHORT).show()
-                            connect(host, name)
+                            connect(host, name, TvBrand.ANDROID_TV)
                         }
                         TvConnection.Result.WrongCode -> {
                             setBusy(false, null)
@@ -163,5 +173,6 @@ class DevicesActivity : AppCompatActivity() {
     private companion object {
         const val KEY_HOST = "host"
         const val KEY_NAME = "name"
+        const val KEY_BRAND = "brand"
     }
 }

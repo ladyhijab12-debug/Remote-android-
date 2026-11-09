@@ -1,6 +1,5 @@
 package com.remote.androidtv.protocol
 
-import java.io.Closeable
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.util.concurrent.CountDownLatch
@@ -28,7 +27,7 @@ class RemoteClient(
     private val device: DeviceInfo,
     private val listener: Listener,
     private val port: Int = REMOTE_PORT,
-) : Closeable {
+) : TvController {
 
     interface Listener {
         fun onDisconnected(error: Throwable?) {}
@@ -66,7 +65,18 @@ class RemoteClient(
     /** Opens an app on the TV through a deep link, e.g. "https://www.youtube.com". */
     fun launchApp(link: String) = send { message(90) { string(1, link) } }
 
-    val isConnected: Boolean get() = socket != null && !closed && ready.count == 0L && failure == null
+    override val isConnected: Boolean get() = socket != null && !closed && ready.count == 0L && failure == null
+
+    override fun press(key: RemoteKey, action: KeyAction) = sendKey(
+        key.androidCode,
+        when (action) {
+            KeyAction.CLICK -> DIRECTION_SHORT
+            KeyAction.PRESS -> DIRECTION_START_LONG
+            KeyAction.RELEASE -> DIRECTION_END_LONG
+        },
+    )
+
+    override fun launch(app: TvApp) = launchApp(app.androidLink)
 
     override fun close() {
         closed = true

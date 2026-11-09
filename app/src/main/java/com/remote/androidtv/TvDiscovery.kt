@@ -3,31 +3,68 @@ package com.remote.androidtv
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.Looper
+import com.remote.androidtv.protocol.SamsungClient
+import com.remote.androidtv.protocol.TvBrand
+import java.net.DatagramPacket
+import java.net.InetAddress
+import java.net.MulticastSocket
+import java.net.SocketTimeoutException
+import java.net.URL
 import java.util.ArrayDeque
 
-data class TvDevice(val name: String, val host: String) {
-    override fun toString() = "$name\n$host"
+data class TvDevice(val name: String, val host: String, val brand: TvBrand) {
+    override fun toString(): String {
+        val label = if (brand == TvBrand.SAMSUNG) "Samsung" else "Android TV"
+        return "$name\n$label · $host"
+    }
 }
 
-/** Finds Android TVs on the local Wi-Fi via mDNS (the TV advertises _androidtvremote2._tcp). */
+/**
+ * Finds TVs on the local Wi-Fi:
+ * - Android TV / Google TV advertise _androidtvremote2._tcp over mDNS.
+ * - Samsung TVs answer an SSDP search, then describe themselves on port 8001.
+ */
 class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Unit) {
 
     private val nsd = context.getSystemService(Context.NSD_SERVICE) as NsdManager
+    private val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val main = Handler(Looper.getMainLooper())
     private val devices = LinkedHashMap<String, TvDevice>()
     private val pending = ArrayDeque<NsdServiceInfo>()
     private var resolving = false
     private var listener: NsdManager.DiscoveryListener? = null
+    @Volatile private var ssdpThread: Thread? = null
 
     fun start() {
+        startNsd()
+        startSsdp()
+    }
+
+    fun stop() {
+        listener?.let { runCatching { nsd.stopServiceDiscovery(it) } }
+        listener = null
+        pending.clear()
+        ssdpThread?.interrupt()
+        ssdpThread = null
+    }
+
+    private fun add(device: TvDevice) {
+        devices[device.host] = device
+        onChange(devices.values.toList())
+    }
+
+    // ---- Android TV (mDNS) ----
+
+    private fun startNsd() {
         if (listener != null) return
         val l = object : NsdManager.DiscoveryListener {
             override fun onServiceFound(info: NsdServiceInfo) = main.post { enqueue(info) }.let {}
             override fun onServiceLost(info: NsdServiceInfo) = main.post {
-                devices.remove(info.serviceName)
-                publish()
+                devices.values.removeAll { it.brand == TvBrand.ANDROID_TV && it.name == info.serviceName }
+                onChange(devices.values.toList())
             }.let {}
             override fun onDiscoveryStarted(serviceType: String) {}
             override fun onDiscoveryStopped(serviceType: String) {}
@@ -37,13 +74,7 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
             override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
         }
         listener = l
-        nsd.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, l)
-    }
-
-    fun stop() {
-        listener?.let { runCatching { nsd.stopServiceDiscovery(it) } }
-        listener = null
-        pending.clear()
+        nsd.discoverServices(ANDROID_TV_SERVICE, NsdManager.PROTOCOL_DNS_SD, l)
     }
 
     private fun enqueue(info: NsdServiceInfo) {
@@ -59,10 +90,7 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
         resolving = true
         nsd.resolveService(info, object : NsdManager.ResolveListener {
             override fun onServiceResolved(resolved: NsdServiceInfo) = main.post {
-                resolved.host?.hostAddress?.let { host ->
-                    devices[resolved.serviceName] = TvDevice(resolved.serviceName, host)
-                    publish()
-                }
+                resolved.host?.hostAddress?.let { add(TvDevice(resolved.serviceName, it, TvBrand.ANDROID_TV)) }
                 resolving = false
                 resolveNext()
             }.let {}
@@ -74,9 +102,65 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
         })
     }
 
-    private fun publish() = onChange(devices.values.toList())
+    // ---- Samsung (SSDP) ----
+
+    private fun startSsdp() {
+        if (ssdpThread != null) return
+        val t = Thread({ ssdpLoop() }, "ssdp-discovery").apply { isDaemon = true }
+        ssdpThread = t
+        t.start()
+    }
+
+    private fun ssdpLoop() {
+        val lock = wifi.createMulticastLock("tv-remote-ssdp").apply { setReferenceCounted(false) }
+        val probed = mutableSetOf<String>()
+        var socket: MulticastSocket? = null
+        try {
+            lock.acquire()
+            val s = MulticastSocket()
+            socket = s
+            s.soTimeout = 1000
+            val group = InetAddress.getByName("239.255.255.250")
+            val search = (
+                "M-SEARCH * HTTP/1.1\r\n" +
+                    "HOST: 239.255.255.250:1900\r\n" +
+                    "MAN: \"ssdp:discover\"\r\n" +
+                    "MX: 2\r\n" +
+                    "ST: urn:samsung.com:device:RemoteControlReceiver:1\r\n\r\n"
+                ).toByteArray()
+            val buf = ByteArray(2048)
+            while (!Thread.currentThread().isInterrupted) {
+                runCatching { s.send(DatagramPacket(search, search.size, group, 1900)) }
+                val until = System.currentTimeMillis() + SSDP_ROUND_MS
+                while (System.currentTimeMillis() < until && !Thread.currentThread().isInterrupted) {
+                    val packet = DatagramPacket(buf, buf.size)
+                    try {
+                        s.receive(packet)
+                    } catch (_: SocketTimeoutException) {
+                        continue
+                    }
+                    val host = ssdpHost(String(packet.data, 0, packet.length)) ?: packet.address.hostAddress ?: continue
+                    if (probed.add(host)) {
+                        SamsungClient.probe(host)?.let { name ->
+                            main.post { add(TvDevice(name, host, TvBrand.SAMSUNG)) }
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Discovery is best effort; the IP can still be typed by hand.
+        } finally {
+            runCatching { socket?.close() }
+            runCatching { lock.release() }
+        }
+    }
+
+    private fun ssdpHost(reply: String): String? =
+        Regex("(?im)^LOCATION:\\s*(\\S+)").find(reply)?.groupValues?.get(1)
+            ?.let { runCatching { URL(it).host }.getOrNull() }
 
     private companion object {
-        const val SERVICE_TYPE = "_androidtvremote2._tcp."
+        const val ANDROID_TV_SERVICE = "_androidtvremote2._tcp."
+        const val SSDP_ROUND_MS = 8000L
     }
 }

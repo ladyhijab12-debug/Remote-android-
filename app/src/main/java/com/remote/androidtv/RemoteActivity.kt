@@ -7,8 +7,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.remote.androidtv.protocol.RemoteClient
-import com.remote.androidtv.protocol.TvKeys
+import com.remote.androidtv.protocol.KeyAction
+import com.remote.androidtv.protocol.RemoteKey
+import com.remote.androidtv.protocol.TvApp
 
 class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
 
@@ -24,32 +25,32 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
         title.text = TvConnection.tvName ?: ""
 
         mapOf(
-            R.id.key_power to TvKeys.POWER,
-            R.id.key_input to TvKeys.TV_INPUT,
-            R.id.key_settings to TvKeys.SETTINGS,
-            R.id.key_back to TvKeys.BACK,
-            R.id.key_home to TvKeys.HOME,
-            R.id.key_menu to TvKeys.MENU,
-            R.id.key_up to TvKeys.DPAD_UP,
-            R.id.key_down to TvKeys.DPAD_DOWN,
-            R.id.key_left to TvKeys.DPAD_LEFT,
-            R.id.key_right to TvKeys.DPAD_RIGHT,
-            R.id.key_ok to TvKeys.DPAD_CENTER,
-            R.id.key_vol_up to TvKeys.VOLUME_UP,
-            R.id.key_vol_down to TvKeys.VOLUME_DOWN,
-            R.id.key_mute to TvKeys.VOLUME_MUTE,
-            R.id.key_ch_up to TvKeys.CHANNEL_UP,
-            R.id.key_ch_down to TvKeys.CHANNEL_DOWN,
-            R.id.key_rewind to TvKeys.MEDIA_REWIND,
-            R.id.key_play to TvKeys.MEDIA_PLAY_PAUSE,
-            R.id.key_forward to TvKeys.MEDIA_FAST_FORWARD,
+            R.id.key_power to RemoteKey.POWER,
+            R.id.key_input to RemoteKey.INPUT,
+            R.id.key_settings to RemoteKey.SETTINGS,
+            R.id.key_back to RemoteKey.BACK,
+            R.id.key_home to RemoteKey.HOME,
+            R.id.key_menu to RemoteKey.MENU,
+            R.id.key_up to RemoteKey.UP,
+            R.id.key_down to RemoteKey.DOWN,
+            R.id.key_left to RemoteKey.LEFT,
+            R.id.key_right to RemoteKey.RIGHT,
+            R.id.key_ok to RemoteKey.OK,
+            R.id.key_vol_up to RemoteKey.VOLUME_UP,
+            R.id.key_vol_down to RemoteKey.VOLUME_DOWN,
+            R.id.key_mute to RemoteKey.MUTE,
+            R.id.key_ch_up to RemoteKey.CHANNEL_UP,
+            R.id.key_ch_down to RemoteKey.CHANNEL_DOWN,
+            R.id.key_rewind to RemoteKey.REWIND,
+            R.id.key_play to RemoteKey.PLAY_PAUSE,
+            R.id.key_forward to RemoteKey.FAST_FORWARD,
         ).forEach { (id, key) -> bindKey(findViewById(id), key) }
 
         findViewById<View>(R.id.app_youtube).setOnClickListener {
-            it.haptic(); TvConnection.launchApp("https://www.youtube.com")
+            it.haptic(); TvConnection.launch(TvApp.YOUTUBE)
         }
         findViewById<View>(R.id.app_netflix).setOnClickListener {
-            it.haptic(); TvConnection.launchApp("https://www.netflix.com/title")
+            it.haptic(); TvConnection.launch(TvApp.NETFLIX)
         }
         status.setOnClickListener { reconnect() }
     }
@@ -80,27 +81,27 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
     private fun reconnect() {
         val host = TvConnection.host ?: return finish()
         status.setText(R.string.reconnecting)
-        TvConnection.connect(host, TvConnection.tvName) { result ->
+        TvConnection.connect(host, TvConnection.tvName, TvConnection.brand) { result ->
             // Pairing lives on the start screen; go back there if the TV forgot us.
-            if (result == TvConnection.Result.NeedsPairing) finish()
+            if (result == TvConnection.Result.NeedsPairing || result == TvConnection.Result.Denied) finish()
             else onConnectionChanged(TvConnection.isConnected)
         }
     }
 
     /** The phone's own volume buttons control the TV while the remote is open. */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean = when (keyCode) {
-        KeyEvent.KEYCODE_VOLUME_UP -> { TvConnection.sendKey(TvKeys.VOLUME_UP); true }
-        KeyEvent.KEYCODE_VOLUME_DOWN -> { TvConnection.sendKey(TvKeys.VOLUME_DOWN); true }
+        KeyEvent.KEYCODE_VOLUME_UP -> { TvConnection.press(RemoteKey.VOLUME_UP); true }
+        KeyEvent.KEYCODE_VOLUME_DOWN -> { TvConnection.press(RemoteKey.VOLUME_DOWN); true }
         else -> super.onKeyDown(keyCode, event)
     }
 
     /** Tap = one press. Holding a key keeps it held on the TV (scrolling, seeking, long-press menus). */
-    private fun bindKey(view: View, key: Int) {
+    private fun bindKey(view: View, key: RemoteKey) {
         var longPressed = false
         val startLong = Runnable {
             longPressed = true
             view.haptic()
-            TvConnection.sendKey(key, RemoteClient.DIRECTION_START_LONG)
+            TvConnection.press(key, KeyAction.PRESS)
         }
         view.setOnTouchListener { v, e ->
             when (e.actionMasked) {
@@ -113,17 +114,17 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
                     v.isPressed = false
                     v.removeCallbacks(startLong)
                     if (longPressed) {
-                        TvConnection.sendKey(key, RemoteClient.DIRECTION_END_LONG)
+                        TvConnection.press(key, KeyAction.RELEASE)
                     } else {
                         v.haptic()
-                        TvConnection.sendKey(key)
+                        TvConnection.press(key)
                         v.performClick()
                     }
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     v.isPressed = false
                     v.removeCallbacks(startLong)
-                    if (longPressed) TvConnection.sendKey(key, RemoteClient.DIRECTION_END_LONG)
+                    if (longPressed) TvConnection.press(key, KeyAction.RELEASE)
                 }
             }
             true

@@ -42,6 +42,9 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     // Generates the self-signed client certificate the TV pairs with.
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    // WebSocket connection to Samsung TVs.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

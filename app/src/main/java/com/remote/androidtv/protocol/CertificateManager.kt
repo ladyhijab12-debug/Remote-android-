@@ -6,7 +6,9 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.File
 import java.math.BigInteger
+import java.io.IOException
 import java.net.InetSocketAddress
+import java.net.SocketTimeoutException
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.SecureRandom
@@ -15,6 +17,7 @@ import java.security.interfaces.RSAPublicKey
 import java.util.Date
 import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLException
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
@@ -46,10 +49,20 @@ class CertificateManager(private val storeFile: File) {
         try {
             socket.connect(InetSocketAddress(host, port), timeoutMs)
             socket.soTimeout = timeoutMs
-            socket.startHandshake()
         } catch (e: Exception) {
             runCatching { socket.close() }
             throw e
+        }
+        try {
+            socket.startHandshake()
+        } catch (e: SocketTimeoutException) {
+            runCatching { socket.close() }
+            throw e
+        } catch (e: IOException) {
+            runCatching { socket.close() }
+            // The TV reached us but dropped the TLS handshake (it often just resets the
+            // connection when it does not know our certificate): report it as a TLS failure.
+            throw e as? SSLException ?: SSLException("TLS handshake failed", e)
         }
         return socket
     }

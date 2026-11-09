@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <!-- Remote buttons keep a fixed physical layout, even in right-to-left languages. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layoutDirection="ltr"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/text"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/connection_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingVertical="4dp"
+                    android:textColor="@color/text_dim"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/key_power"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:background="@drawable/bg_power"
+                android:clickable="true"
+                android:contentDescription="@string/power"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="⏻"
+                android:textColor="@color/power"
+                android:textSize="28sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/key_input"
+                style="@style/RemoteKey.Small"
+                android:text="@string/input" />
+
+            <TextView
+                android:id="@+id/key_settings"
+                style="@style/RemoteKey.Small"
+                android:text="@string/settings" />
+        </LinearLayout>
+
+        <!-- D-pad -->
+        <FrameLayout
+            android:layout_width="260dp"
+            android:layout_height="260dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginVertical="14dp"
+            android:background="@drawable/bg_dpad">
+
+            <TextView
+                android:id="@+id/key_up"
+                style="@style/DpadKey"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/up"
+                android:text="▲" />
+
+            <TextView
+                android:id="@+id/key_down"
+                style="@style/DpadKey"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/down"
+                android:text="▼" />
+
+            <TextView
+                android:id="@+id/key_left"
+                style="@style/DpadKey"
+                android:layout_gravity="start|center_vertical"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/left"
+                android:text="◀" />
+
+            <TextView
+                android:id="@+id/key_right"
+                style="@style/DpadKey"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/right"
+                android:text="▶" />
+
+            <TextView
+                android:id="@+id/key_ok"
+                style="@style/DpadKey"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_ok"
+                android:text="@string/ok"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/key_back"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/back"
+                android:text="↩" />
+
+            <TextView
+                android:id="@+id/key_home"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/home"
+                android:text="⌂" />
+
+            <TextView
+                android:id="@+id/key_menu"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/menu"
+                android:text="☰" />
+        </LinearLayout>
+
+        <!-- volume / channel -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/key_vol_down"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/vol_down"
+                android:text="🔉" />
+
+            <TextView
+                android:id="@+id/key_mute"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/mute"
+                android:text="🔇" />
+
+            <TextView
+                android:id="@+id/key_vol_up"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/vol_up"
+                android:text="🔊" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/key_ch_down"
+                style="@style/RemoteKey.Small"
+                android:text="@string/ch_down" />
+
+            <TextView
+                android:id="@+id/key_ch_up"
+                style="@style/RemoteKey.Small"
+                android:text="@string/ch_up" />
+        </LinearLayout>
+
+        <!-- media -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/key_rewind"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/rewind"
+                android:text="⏪" />
+
+            <TextView
+                android:id="@+id/key_play"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/play_pause"
+                android:text="⏯" />
+
+            <TextView
+                android:id="@+id/key_forward"
+                style="@style/RemoteKey"
+                android:contentDescription="@string/forward"
+                android:text="⏩" />
+        </LinearLayout>
+
+        <!-- app shortcuts -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/app_youtube"
+                style="@style/RemoteKey.Small"
+                android:text="YouTube"
+                android:textColor="#FFFF4E45"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/app_netflix"
+                style="@style/RemoteKey.Small"
+                android:text="Netflix"
+                android:textColor="#FFE50914"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

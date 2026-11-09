@@ -1,5 +1,6 @@
 package com.remote.androidtv
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
@@ -10,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.remote.androidtv.protocol.KeyAction
 import com.remote.androidtv.protocol.RemoteKey
 import com.remote.androidtv.protocol.TvApp
+import com.remote.androidtv.protocol.TvBrand
 
 class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
 
@@ -53,6 +55,11 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
             it.haptic(); TvConnection.launch(TvApp.NETFLIX)
         }
         status.setOnClickListener { reconnect() }
+
+        findViewById<View>(R.id.open_tools).apply {
+            visibility = if (TvConnection.brand == TvBrand.ANDROID_TV) View.VISIBLE else View.GONE
+            setOnClickListener { startActivity(Intent(this@RemoteActivity, TvToolsActivity::class.java)) }
+        }
     }
 
     override fun onStart() {

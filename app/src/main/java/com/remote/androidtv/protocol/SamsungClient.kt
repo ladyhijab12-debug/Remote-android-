@@ -165,14 +165,14 @@ class SamsungClient(
         const val SECURE_PORT = 8002
         const val PLAIN_PORT = 8001
 
-        /** Samsung TVs use a self-signed certificate on port 8002. */
+        /** TVs use a self-signed certificate on their secure port (Samsung 8002, LG 3001). */
         private val trustTv = object : X509TrustManager {
             override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
             override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
             override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
         }
 
-        private val client: OkHttpClient by lazy {
+        internal val client: OkHttpClient by lazy {
             val ssl = SSLContext.getInstance("TLS").apply { init(null, arrayOf(trustTv), SecureRandom()) }
             OkHttpClient.Builder()
                 .sslSocketFactory(ssl.socketFactory, trustTv)
@@ -208,6 +208,6 @@ class SamsungClient(
                 .find(json)?.groupValues?.get(1)
                 ?.replace(Regex("\\\\(.)")) { it.groupValues[1] }
 
-        private fun escape(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"")
+        internal fun escape(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"")
     }
 }

@@ -42,8 +42,8 @@ jobs:
           name: TV Remote ${{ inputs.release_tag || github.ref_name }}
           files: TV-Remote.apk
           body: |
-            ريموت لتلفزيون Android TV / Google TV.
+            ريموت لتلفزيونات Android TV / Google TV و Samsung و LG و Roku عبر الواي فاي، و Samsung / LG / Sony عبر الأشعة تحت الحمراء (IR).
             حمّل ملف TV-Remote.apk تحت وثبّته على جوالك (اسمح بالتثبيت من مصادر غير معروفة).
-            الجوال والتلفزيون لازم يكونون على نفس الواي فاي.
+            للواي فاي: الجوال والتلفزيون لازم يكونون على نفس الشبكة. للـ IR: لازم الجوال فيه مرسل أشعة تحت الحمراء.
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest

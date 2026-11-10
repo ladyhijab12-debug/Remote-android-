@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.remote.androidtv.protocol.IrCodeSet
 import com.remote.androidtv.protocol.PairingClient
 import com.remote.androidtv.protocol.TvBrand
 
@@ -37,7 +38,9 @@ class DevicesActivity : AppCompatActivity() {
         status = findViewById(R.id.status)
         progress = findViewById(R.id.progress)
         ipInput = findViewById(R.id.ip_input)
-        ipInput.setText(prefs.getString(KEY_HOST, ""))
+        val lastBrand = prefs.getString(KEY_BRAND, null)?.let { runCatching { TvBrand.valueOf(it) }.getOrNull() }
+        // For an infrared remote the saved "host" is a code set, not an address.
+        if (lastBrand != TvBrand.IR) ipInput.setText(prefs.getString(KEY_HOST, ""))
 
         adapter = ArrayAdapter(this, R.layout.item_device, R.id.device_text, mutableListOf<TvDevice>())
         val list = findViewById<ListView>(R.id.device_list)
@@ -52,6 +55,11 @@ class DevicesActivity : AppCompatActivity() {
             if (host.isEmpty()) ipInput.error = getString(R.string.enter_ip) else connect(host, null, null)
         }
 
+        findViewById<Button>(R.id.ir_button).apply {
+            visibility = if (TvConnection.hasIr) View.VISIBLE else View.GONE
+            setOnClickListener { chooseIrBrand() }
+        }
+
         discovery = TvDiscovery(this) { devices ->
             adapter.clear()
             adapter.addAll(devices)
@@ -59,8 +67,7 @@ class DevicesActivity : AppCompatActivity() {
 
         val lastHost = prefs.getString(KEY_HOST, null)
         if (savedInstanceState == null && lastHost != null) {
-            val brand = prefs.getString(KEY_BRAND, null)?.let { runCatching { TvBrand.valueOf(it) }.getOrNull() }
-            connect(lastHost, prefs.getString(KEY_NAME, null), brand)
+            connect(lastHost, prefs.getString(KEY_NAME, null), lastBrand)
         }
     }
 
@@ -85,8 +92,9 @@ class DevicesActivity : AppCompatActivity() {
         if (busy) return
         setBusy(true, getString(R.string.connecting, name ?: host))
         TvConnection.connect(host, name, brand, onDetected = { detected ->
-            // A Samsung TV asks for permission on its screen the first time.
+            // Samsung and LG TVs ask for permission on their screen the first time.
             if (detected == TvBrand.SAMSUNG) setBusy(true, getString(R.string.samsung_allow))
+            if (detected == TvBrand.LG) setBusy(true, getString(R.string.lg_allow))
         }) { result ->
             when (result) {
                 TvConnection.Result.Ok -> {
@@ -99,12 +107,27 @@ class DevicesActivity : AppCompatActivity() {
                     startActivity(Intent(this, RemoteActivity::class.java))
                 }
                 TvConnection.Result.NeedsPairing -> startPairing(host, name)
-                TvConnection.Result.Denied -> setBusy(false, getString(R.string.samsung_denied))
+                TvConnection.Result.Denied -> setBusy(
+                    false,
+                    getString(if (TvConnection.brand == TvBrand.LG) R.string.lg_denied else R.string.samsung_denied),
+                )
                 is TvConnection.Result.Failed ->
                     setBusy(false, getString(R.string.connect_failed, result.error.localizedMessage ?: ""))
                 TvConnection.Result.WrongCode -> setBusy(false, null)
             }
         }
+    }
+
+    /** Infrared: there is nothing to find on the network, the user says which brand the TV is. */
+    private fun chooseIrBrand() {
+        val sets = IrCodeSet.values()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.ir_choose)
+            .setItems(sets.map { it.label }.toTypedArray()) { _, which ->
+                connect(sets[which].name, getString(R.string.ir_name, sets[which].label), TvBrand.IR)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun startPairing(host: String, name: String?) {

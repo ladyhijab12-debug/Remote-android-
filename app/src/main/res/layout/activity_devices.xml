@@ -64,6 +64,14 @@
         android:text="@string/searching"
         android:textColor="@color/text_dim" />
 
+    <Button
+        android:id="@+id/ir_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:text="@string/ir_button"
+        android:visibility="gone" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

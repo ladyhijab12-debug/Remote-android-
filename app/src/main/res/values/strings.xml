@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ريموت التلفزيون</string>
-    <string name="devices_title">اختر التلفزيون</string>
-    <string name="devices_hint">يدعم Android TV و Google TV وتلفزيونات Samsung الذكية. لازم يكون الجوال والتلفزيون على نفس شبكة الواي فاي.</string>
-    <string name="searching">جاري البحث عن تلفزيونات Android TV و Samsung…</string>
+    <string name="app_name">ريموت لكل الأجهزة</string>
+    <string name="devices_title">اختر الجهاز</string>
+    <string name="devices_hint">يدعم Android TV و Google TV و Samsung و LG و Roku عبر الواي فاي (الجوال والجهاز على نفس الشبكة)، والتلفزيونات العادية عبر الأشعة تحت الحمراء إذا جوالك فيه IR.</string>
+    <string name="searching">جاري البحث عن الأجهزة على الواي فاي…</string>
     <string name="manual_title">أو اكتب عنوان IP للتلفزيون (الإعدادات › الشبكة في التلفزيون)</string>
     <string name="connect">اتصال</string>
     <string name="enter_ip">اكتب عنوان IP</string>
@@ -11,6 +11,12 @@
     <string name="connect_failed">ما قدرت أتصل. تأكد إن التلفزيون شغّال وعلى نفس الواي فاي. (%1$s)</string>
     <string name="samsung_allow">على شاشة تلفزيون Samsung بيطلع طلب اتصال: اضغطي «سماح» بالريموت الأصلي…</string>
     <string name="samsung_denied">التلفزيون رفض الاتصال أو ما أحد ضغط «سماح». حاولي مرة ثانية، وإذا رفضتيه قبل، اسمحي له من إعدادات التلفزيون: الاتصال › مدير الأجهزة الخارجية › مدير اتصال الأجهزة.</string>
+    <string name="lg_allow">على شاشة تلفزيون LG بيطلع طلب اتصال: اضغطي «قبول» بالريموت الأصلي…</string>
+    <string name="lg_denied">تلفزيون LG رفض الاتصال أو ما أحد ضغط «قبول». حاولي مرة ثانية.</string>
+    <string name="ir_button">ريموت بالأشعة تحت الحمراء (IR) — بدون واي فاي</string>
+    <string name="ir_choose">وش ماركة التلفزيون؟</string>
+    <string name="ir_name">%1$s (IR)</string>
+    <string name="ir_ready">● جاهز — وجّهي أعلى الجوال نحو التلفزيون</string>
     <string name="pairing_start">جاري طلب رمز الاقتران من التلفزيون…</string>
     <string name="pairing_check">جاري التحقق من الرمز…</string>
     <string name="pairing_failed">فشل الاقتران: %1$s</string>

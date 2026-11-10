@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.remote.androidtv.protocol.KeyAction
 import com.remote.androidtv.protocol.RemoteKey
 import com.remote.androidtv.protocol.TvApp
+import com.remote.androidtv.protocol.TvBrand
 
 class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
 
@@ -52,6 +53,8 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
         findViewById<View>(R.id.app_netflix).setOnClickListener {
             it.haptic(); TvConnection.launch(TvApp.NETFLIX)
         }
+        // Apps cannot be opened over infrared.
+        if (TvConnection.brand == TvBrand.IR) findViewById<View>(R.id.app_row).visibility = View.GONE
         status.setOnClickListener { reconnect() }
     }
 
@@ -68,7 +71,13 @@ class RemoteActivity : AppCompatActivity(), TvConnection.StateListener {
     }
 
     override fun onConnectionChanged(connected: Boolean) {
-        status.setText(if (connected) R.string.connected else R.string.disconnected_tap)
+        status.setText(
+            when {
+                !connected -> R.string.disconnected_tap
+                TvConnection.brand == TvBrand.IR -> R.string.ir_ready
+                else -> R.string.connected
+            },
+        )
         status.isActivated = connected
     }
 

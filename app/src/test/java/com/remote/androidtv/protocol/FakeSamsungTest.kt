@@ -30,6 +30,8 @@ class FakeSamsungTest {
         tv.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) { webSocket.send(firstEvent) }
             override fun onMessage(webSocket: WebSocket, text: String) { received.add(text) }
+            // Finish the closing handshake, or the server cannot shut down after the test.
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(1000, null) }
         }))
     }
 

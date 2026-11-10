@@ -6,6 +6,8 @@ import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.Looper
+import com.remote.androidtv.protocol.LgClient
+import com.remote.androidtv.protocol.RokuClient
 import com.remote.androidtv.protocol.SamsungClient
 import com.remote.androidtv.protocol.TvBrand
 import java.net.DatagramPacket
@@ -16,16 +18,13 @@ import java.net.URL
 import java.util.ArrayDeque
 
 data class TvDevice(val name: String, val host: String, val brand: TvBrand) {
-    override fun toString(): String {
-        val label = if (brand == TvBrand.SAMSUNG) "Samsung" else "Android TV"
-        return "$name\n$label · $host"
-    }
+    override fun toString(): String = "$name\n${brand.label} · $host"
 }
 
 /**
  * Finds TVs on the local Wi-Fi:
  * - Android TV / Google TV advertise _androidtvremote2._tcp over mDNS.
- * - Samsung TVs answer an SSDP search, then describe themselves on port 8001.
+ * - Samsung, LG webOS and Roku devices answer an SSDP search, then tell their name over HTTP.
  */
 class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Unit) {
 
@@ -102,7 +101,7 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
         })
     }
 
-    // ---- Samsung (SSDP) ----
+    // ---- Samsung, LG, Roku (SSDP) ----
 
     private fun startSsdp() {
         if (ssdpThread != null) return
@@ -121,16 +120,18 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
             socket = s
             s.soTimeout = 1000
             val group = InetAddress.getByName("239.255.255.250")
-            val search = (
-                "M-SEARCH * HTTP/1.1\r\n" +
-                    "HOST: 239.255.255.250:1900\r\n" +
-                    "MAN: \"ssdp:discover\"\r\n" +
-                    "MX: 2\r\n" +
-                    "ST: urn:samsung.com:device:RemoteControlReceiver:1\r\n\r\n"
-                ).toByteArray()
+            val searches = SSDP_TARGETS.map {
+                (
+                    "M-SEARCH * HTTP/1.1\r\n" +
+                        "HOST: 239.255.255.250:1900\r\n" +
+                        "MAN: \"ssdp:discover\"\r\n" +
+                        "MX: 2\r\n" +
+                        "ST: $it\r\n\r\n"
+                    ).toByteArray()
+            }
             val buf = ByteArray(2048)
             while (!Thread.currentThread().isInterrupted) {
-                runCatching { s.send(DatagramPacket(search, search.size, group, 1900)) }
+                searches.forEach { runCatching { s.send(DatagramPacket(it, it.size, group, 1900)) } }
                 val until = System.currentTimeMillis() + SSDP_ROUND_MS
                 while (System.currentTimeMillis() < until && !Thread.currentThread().isInterrupted) {
                     val packet = DatagramPacket(buf, buf.size)
@@ -139,12 +140,22 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
                     } catch (_: SocketTimeoutException) {
                         continue
                     }
-                    val host = ssdpHost(String(packet.data, 0, packet.length)) ?: packet.address.hostAddress ?: continue
-                    if (probed.add(host)) {
-                        SamsungClient.probe(host)?.let { name ->
-                            main.post { add(TvDevice(name, host, TvBrand.SAMSUNG)) }
-                        }
+                    val reply = String(packet.data, 0, packet.length)
+                    val location = ssdpLocation(reply)
+                    val host = location?.let { runCatching { URL(it).host }.getOrNull() }
+                        ?: packet.address.hostAddress ?: continue
+                    val brand = when {
+                        reply.contains(ROKU_TARGET, ignoreCase = true) -> TvBrand.ROKU
+                        reply.contains(LG_TARGET, ignoreCase = true) -> TvBrand.LG
+                        else -> TvBrand.SAMSUNG
                     }
+                    if (!probed.add("$brand $host")) continue
+                    val name = when (brand) {
+                        TvBrand.ROKU -> RokuClient.probe(host)
+                        TvBrand.LG -> location?.let { LgClient.nameFromDescription(it) } ?: "LG TV"
+                        else -> SamsungClient.probe(host)
+                    } ?: continue
+                    main.post { add(TvDevice(name, host, brand)) }
                 }
             }
         } catch (_: Exception) {
@@ -155,12 +166,14 @@ class TvDiscovery(context: Context, private val onChange: (List<TvDevice>) -> Un
         }
     }
 
-    private fun ssdpHost(reply: String): String? =
+    private fun ssdpLocation(reply: String): String? =
         Regex("(?im)^LOCATION:\\s*(\\S+)").find(reply)?.groupValues?.get(1)
-            ?.let { runCatching { URL(it).host }.getOrNull() }
 
     private companion object {
         const val ANDROID_TV_SERVICE = "_androidtvremote2._tcp."
         const val SSDP_ROUND_MS = 8000L
+        const val ROKU_TARGET = "roku:ecp"
+        const val LG_TARGET = "urn:lge-com:service:webos-second-screen:1"
+        val SSDP_TARGETS = listOf("urn:samsung.com:device:RemoteControlReceiver:1", LG_TARGET, ROKU_TARGET)
     }
 }

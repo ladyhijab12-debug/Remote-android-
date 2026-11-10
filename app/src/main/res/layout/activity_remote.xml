@@ -241,5 +241,14 @@
                 android:textColor="#FFE50914"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <!-- Android TV only: cleaning and launcher over ADB -->
+        <TextView
+            android:id="@+id/open_tools"
+            style="@style/RemoteKey.Small"
+            android:layout_width="match_parent"
+            android:layout_weight="0"
+            android:text="@string/tools_button"
+            android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

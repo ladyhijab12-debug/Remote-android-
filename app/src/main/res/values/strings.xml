@@ -43,4 +43,38 @@
     <string name="rewind">ترجيع</string>
     <string name="play_pause">تشغيل / إيقاف مؤقت</string>
     <string name="forward">تقديم</string>
+
+    <!-- TV tools: cleaning and launcher (ADB) -->
+    <string name="tools_button">🧹 تنظيف وتغيير الواجهة</string>
+    <string name="tools_title">تنظيف وتغيير الواجهة</string>
+    <string name="tools_hint">هذي الأدوات تشتغل عن طريق ADB. فعّلها في التلفزيون مرة وحدة: الإعدادات › النظام › حول › اضغط على «إصدار نظام التشغيل» أو «البنية» 7 مرات، بعدين الإعدادات › النظام › خيارات المطوّر › فعّل «تصحيح أخطاء USB» و«تصحيح الأخطاء عبر الشبكة» إذا موجود.</string>
+    <string name="tools_connecting">جاري الاتصال بالتلفزيون عبر ADB (%1$s:5555)…</string>
+    <string name="tools_allow_on_tv">على شاشة التلفزيون بيطلع «السماح بتصحيح الأخطاء؟»: علّم «السماح دائماً من هذا الجهاز» واضغط «موافق»…</string>
+    <string name="tools_not_allowed">التلفزيون ما سمح بالاتصال. اضغط «إعادة المحاولة» ووافق على الطلب اللي يطلع على الشاشة.</string>
+    <string name="tools_enable_adb">ما قدرت أتصل عبر ADB. تأكد إن «تصحيح أخطاء USB» مفعّل في خيارات المطوّر بالتلفزيون. (%1$s)</string>
+    <string name="tools_failed">صار خطأ: %1$s</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="clean_title">تنظيف التلفزيون</string>
+    <string name="clean_hint">يمسح الملفات المؤقتة (الكاش) لكل التطبيقات ويقفل التطبيقات الشغّالة في الخلفية، عشان يصير التلفزيون أسرع ويفضى مكان. ما يمسح حساباتك ولا بياناتك.</string>
+    <string name="clean">🧹 نظّف الآن</string>
+    <string name="cleaning">جاري التنظيف…</string>
+    <string name="clean_done">✓ تم التنظيف.</string>
+    <string name="clean_done_freed">✓ تم التنظيف — فضّى %1$s.</string>
+    <string name="launcher_title">الواجهة الرئيسية (Launcher)</string>
+    <string name="launcher_hint">اختر الواجهة اللي تبيها تطلع لما تضغط زر الرئيسية. لازم تكون الواجهة الجديدة مثبّتة على التلفزيون أول (مثلاً Projectivy Launcher أو FLauncher من متجر Google Play).</string>
+    <string name="loading_launchers">جاري جلب الواجهات…</string>
+    <string name="no_launchers">ما لقيت واجهات على التلفزيون.</string>
+    <string name="launcher_current">%1$s ✓ (الحالية)</string>
+    <string name="disable_stock">تعطيل واجهة Google TV الأصلية (إذا الواجهة الأصلية ترجع بعد التغيير)</string>
+    <string name="disable_stock_warning">تنبيه: بيتم تعطيل الواجهة الأصلية. تقدر ترجعها أي وقت بزر «استرجاع الواجهة الأصلية».</string>
+    <string name="change_launcher">تغيير الواجهة</string>
+    <string name="change_launcher_confirm">تبي تخلي «%1$s» هي الواجهة الرئيسية للتلفزيون؟</string>
+    <string name="change">تغيير</string>
+    <string name="changing_launcher">جاري تغيير الواجهة…</string>
+    <string name="launcher_changed">✓ صارت «%1$s» هي الواجهة الرئيسية.</string>
+    <string name="refresh">تحديث</string>
+    <string name="restore_launcher">استرجاع الواجهة الأصلية</string>
+    <string name="restore_launcher_confirm">بيتم تفعيل واجهة التلفزيون الأصلية ورجوعها كواجهة رئيسية.</string>
+    <string name="restore">استرجاع</string>
+    <string name="launcher_restored">✓ رجعت الواجهة الأصلية.</string>
 </resources>

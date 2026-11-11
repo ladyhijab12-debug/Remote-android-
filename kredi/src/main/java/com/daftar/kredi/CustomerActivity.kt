@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 
-/** One customer's page: balance, add credit / payment, call, WhatsApp reminder, and the history. */
+/** One customer's or supplier's page: balance, add credit / payment, call, WhatsApp, and the history. */
 class CustomerActivity : AppCompatActivity() {
 
     companion object {
@@ -23,6 +23,7 @@ class CustomerActivity : AppCompatActivity() {
     private val db by lazy { (application as KrediApp).db }
     private val adapter = EntryAdapter { askDeleteEntry(it) }
     private lateinit var customer: Customer
+    private val labels get() = Labels.of(customer.kind)
     private var entries: List<Entry> = emptyList()
     private var balance = 0L
 
@@ -42,6 +43,7 @@ class CustomerActivity : AppCompatActivity() {
             return
         }
         customer = found
+        adapter.labels = labels
 
         toolbar = findViewById(R.id.toolbar)
         details = findViewById(R.id.details)
@@ -64,10 +66,20 @@ class CustomerActivity : AppCompatActivity() {
             adapter = this@CustomerActivity.adapter
         }
 
-        findViewById<MaterialButton>(R.id.btn_credit).setOnClickListener { addEntry(EntryType.CREDIT) }
-        findViewById<MaterialButton>(R.id.btn_payment).setOnClickListener { addEntry(EntryType.PAYMENT) }
+        findViewById<MaterialButton>(R.id.btn_credit).apply {
+            setText(labels.addCredit)
+            setOnClickListener { addEntry(EntryType.CREDIT) }
+        }
+        findViewById<MaterialButton>(R.id.btn_payment).apply {
+            setText(labels.addPayment)
+            setOnClickListener { addEntry(EntryType.PAYMENT) }
+        }
         findViewById<MaterialButton>(R.id.btn_call).setOnClickListener { call() }
-        findViewById<MaterialButton>(R.id.btn_whatsapp).setOnClickListener { remind() }
+        findViewById<MaterialButton>(R.id.btn_whatsapp).apply {
+            // A payment reminder only makes sense for customers.
+            visibility = if (labels.canRemind) View.VISIBLE else View.GONE
+            setOnClickListener { remind() }
+        }
         findViewById<MaterialButton>(R.id.btn_share).setOnClickListener { shareStatement() }
 
         refresh()
@@ -86,34 +98,34 @@ class CustomerActivity : AppCompatActivity() {
 
         when {
             balance > 0 -> {
-                balanceLabel.setText(R.string.balance_label_owes)
+                balanceLabel.setText(labels.balanceOwes)
                 balanceView.text = Money.display(balance)
             }
             balance < 0 -> {
-                balanceLabel.setText(R.string.balance_label_advance)
+                balanceLabel.setText(labels.balanceAdvance)
                 balanceView.text = Money.display(-balance)
             }
             else -> {
-                balanceLabel.setText(R.string.balance_label_paid)
+                balanceLabel.setText(labels.balancePaid)
                 balanceView.text = Money.display(0)
             }
         }
     }
 
     private fun addEntry(type: EntryType) {
-        Dialogs.entry(this, type, balance) { amount, note, time ->
+        Dialogs.entry(this, labels, type, balance) { amount, note, time ->
             db.addEntry(customer.id, type, amount, note, time)
             refresh()
             Toast.makeText(
                 this,
-                if (type == EntryType.CREDIT) R.string.saved_credit else R.string.saved_payment,
+                if (type == EntryType.CREDIT) labels.savedCredit else labels.savedPayment,
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
 
     private fun askDeleteEntry(entry: Entry) {
-        val kind = getString(if (entry.type == EntryType.CREDIT) R.string.entry_credit else R.string.entry_payment)
+        val kind = getString(labels.entry(entry.type))
         Dialogs.confirm(
             this,
             getString(R.string.delete_entry_title),
@@ -127,7 +139,7 @@ class CustomerActivity : AppCompatActivity() {
     }
 
     private fun edit() {
-        Dialogs.customer(this, customer) { name, phone, note ->
+        Dialogs.customer(this, customer.kind, customer) { name, phone, note ->
             db.updateCustomer(customer.id, name, phone, note)
             customer = customer.copy(name = name, phone = phone, note = note)
             refresh()
@@ -159,7 +171,7 @@ class CustomerActivity : AppCompatActivity() {
     }
 
     private fun shareStatement() {
-        val text = Ledger.statement(customer.name, entries) { Dates.day(it) }
+        val text = Ledger.statement(customer.name, entries, customer.kind) { Dates.day(it) }
         val number = Ledger.whatsappNumber(customer.phone)
         if (number != null) {
             start(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$number?text=" + Uri.encode(text))))

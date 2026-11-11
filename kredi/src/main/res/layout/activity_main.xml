@@ -26,7 +26,19 @@
                 app:title="@string/app_name"
                 app:titleTextColor="@color/surface" />
 
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@android:color/transparent"
+                app:tabIndicatorColor="@color/surface"
+                app:tabSelectedTextColor="@color/surface"
+                app:tabTextAppearance="@style/TabText"
+                app:tabTextColor="@color/primary_soft" />
+
             <TextView
+                android:id="@+id/total_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="20dp"

@@ -15,16 +15,21 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.tabs.TabLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Start screen: what everyone owes, the customer list, search, and backups. */
+/** Start screen: two tabs (customers who owe the shop, suppliers the shop owes), search, and backups. */
 class MainActivity : AppCompatActivity() {
 
     private val db by lazy { (application as KrediApp).db }
     private val adapter = CustomerAdapter { openCustomer(it.id) }
+    private var kind = PartyKind.CUSTOMER
+    private val labels get() = Labels.of(kind)
     private lateinit var search: EditText
+    private lateinit var fab: ExtendedFloatingActionButton
+    private lateinit var totalLabel: TextView
     private lateinit var total: TextView
     private lateinit var count: TextView
     private lateinit var empty: TextView
@@ -43,7 +48,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        kind = savedInstanceState?.getString(STATE_KIND)
+            ?.let { runCatching { PartyKind.valueOf(it) }.getOrNull() } ?: PartyKind.CUSTOMER
         search = findViewById(R.id.search)
+        fab = findViewById(R.id.fab)
+        totalLabel = findViewById(R.id.total_label)
         total = findViewById(R.id.total)
         count = findViewById(R.id.count)
         empty = findViewById(R.id.empty)
@@ -59,10 +68,25 @@ class MainActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) = refresh()
         })
 
-        findViewById<ExtendedFloatingActionButton>(R.id.fab).setOnClickListener {
-            Dialogs.customer(this, null) { name, phone, note ->
-                openCustomer(db.addCustomer(name, phone, note))
+        fab.setOnClickListener {
+            val k = kind
+            Dialogs.customer(this, k, null) { name, phone, note ->
+                openCustomer(db.addCustomer(k, name, phone, note))
             }
+        }
+
+        findViewById<TabLayout>(R.id.tabs).apply {
+            addTab(newTab().setText(R.string.tab_customers), kind == PartyKind.CUSTOMER)
+            addTab(newTab().setText(R.string.tab_suppliers), kind == PartyKind.SUPPLIER)
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    kind = if (tab.position == 1) PartyKind.SUPPLIER else PartyKind.CUSTOMER
+                    search.text.clear()
+                    refresh()
+                }
+                override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+                override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            })
         }
 
         findViewById<MaterialToolbar>(R.id.toolbar).apply {
@@ -84,21 +108,33 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_KIND, kind.name)
+    }
+
     override fun onResume() {
         super.onResume()
         refresh()
     }
 
     private fun refresh() {
-        val all = db.summaries()
+        val all = db.summaries(kind)
         val query = search.text.toString()
-        val shown = if (query.isBlank()) all else db.summaries(query)
+        val shown = if (query.isBlank()) all else db.summaries(kind, query)
         adapter.submit(shown)
 
+        totalLabel.setText(labels.totalOwed)
         total.text = Money.display(Ledger.totalOwed(all))
-        count.text = getString(R.string.customers_count, all.size, all.count { it.balance > 0 })
+        count.text = getString(labels.count, all.size, all.count { it.balance > 0 })
+        search.setHint(labels.searchHint)
+        fab.setText(labels.add)
         empty.visibility = if (shown.isEmpty()) View.VISIBLE else View.GONE
-        empty.setText(if (all.isEmpty()) R.string.empty_book else R.string.empty_search)
+        empty.setText(if (all.isEmpty()) labels.empty else R.string.empty_search)
+    }
+
+    companion object {
+        private const val STATE_KIND = "kind"
     }
 
     private fun openCustomer(id: Long) {

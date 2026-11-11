@@ -13,17 +13,24 @@ import java.util.Calendar
 
 object Dialogs {
 
-    /** Add ([existing] null) or edit a customer. */
-    fun customer(context: Context, existing: Customer?, onSave: (name: String, phone: String, note: String) -> Unit) {
+    /** Add ([existing] null) or edit a customer or supplier. */
+    fun customer(
+        context: Context,
+        kind: PartyKind,
+        existing: Customer?,
+        onSave: (name: String, phone: String, note: String) -> Unit,
+    ) {
+        val labels = Labels.of(kind)
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_customer, null)
         val nameLayout = view.findViewById<TextInputLayout>(R.id.name_layout)
         val name = view.findViewById<TextInputEditText>(R.id.name)
         val phone = view.findViewById<TextInputEditText>(R.id.phone)
         val note = view.findViewById<TextInputEditText>(R.id.note)
+        nameLayout.hint = context.getString(labels.nameHint)
         existing?.let { name.setText(it.name); phone.setText(it.phone); note.setText(it.note) }
 
         val dialog = MaterialAlertDialogBuilder(context)
-            .setTitle(if (existing == null) R.string.customer_new_title else R.string.customer_edit_title)
+            .setTitle(if (existing == null) labels.newTitle else R.string.customer_edit_title)
             .setView(view)
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)
@@ -47,6 +54,7 @@ object Dialogs {
     /** New credit or payment. [balance] is what the customer owes now, offered as "pay everything". */
     fun entry(
         context: Context,
+        labels: Labels,
         type: EntryType,
         balance: Long,
         onSave: (amount: Long, note: String, time: Long) -> Unit,
@@ -58,7 +66,7 @@ object Dialogs {
         val note = view.findViewById<TextInputEditText>(R.id.note)
         val dateButton = view.findViewById<MaterialButton>(R.id.date)
         val credit = type == EntryType.CREDIT
-        noteLayout.hint = context.getString(if (credit) R.string.entry_note else R.string.payment_note)
+        noteLayout.hint = context.getString(if (credit) labels.creditNote else R.string.payment_note)
 
         // Today by default; an earlier day can be picked when copying an old paper notebook.
         val time = Calendar.getInstance()
@@ -76,7 +84,7 @@ object Dialogs {
         }
 
         val builder = MaterialAlertDialogBuilder(context)
-            .setTitle(if (credit) R.string.credit_title else R.string.payment_title)
+            .setTitle(if (credit) labels.creditTitle else labels.paymentTitle)
             .setView(view)
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)

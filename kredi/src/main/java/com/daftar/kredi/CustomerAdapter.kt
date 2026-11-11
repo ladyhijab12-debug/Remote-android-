@@ -44,7 +44,7 @@ class CustomerAdapter(private val onClick: (Customer) -> Unit) : RecyclerView.Ad
                     balance.setTextColor(ContextCompat.getColor(ctx, R.color.debt))
                 }
                 s.balance < 0 -> {
-                    balance.text = ctx.getString(R.string.balance_advance, Money.display(-s.balance))
+                    balance.text = ctx.getString(Labels.of(c.kind).advanceShort, Money.display(-s.balance))
                     balance.setTextColor(ContextCompat.getColor(ctx, R.color.advance))
                 }
                 else -> {

@@ -10,7 +10,7 @@ data class BackupData(val customers: List<Customer>, val entries: List<Entry>)
 object Backup {
 
     private const val FORMAT = "daftar-kredi"
-    private const val VERSION = 1
+    private const val VERSION = 2
 
     fun toJson(data: BackupData): String {
         val customers = JSONArray()
@@ -18,7 +18,7 @@ object Backup {
             customers.put(
                 JSONObject()
                     .put("id", c.id).put("name", c.name).put("phone", c.phone)
-                    .put("note", c.note).put("createdAt", c.createdAt)
+                    .put("note", c.note).put("createdAt", c.createdAt).put("kind", c.kind.name)
             )
         }
         val entries = JSONArray()
@@ -55,6 +55,8 @@ object Backup {
                     phone = o.optString("phone"),
                     note = o.optString("note"),
                     createdAt = o.optLong("createdAt"),
+                    // Version 1 files only had customers.
+                    kind = PartyKind.valueOf(o.optString("kind", PartyKind.CUSTOMER.name)),
                 )
             }
         }

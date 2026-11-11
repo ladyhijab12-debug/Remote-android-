@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /** Everything is stored on the phone in one small SQLite database. */
-class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1) {
+class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 2) {
 
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
@@ -20,7 +20,8 @@ class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1)
                 name TEXT NOT NULL,
                 phone TEXT NOT NULL DEFAULT '',
                 note TEXT NOT NULL DEFAULT '',
-                created INTEGER NOT NULL)"""
+                created INTEGER NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'CUSTOMER')"""
         )
         db.execSQL(
             """CREATE TABLE entries (
@@ -34,33 +35,37 @@ class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1)
         db.execSQL("CREATE INDEX entries_customer ON entries(customer_id)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // Version 2 adds suppliers; every existing book is a customer's.
+        if (oldVersion < 2) db.execSQL("ALTER TABLE customers ADD COLUMN kind TEXT NOT NULL DEFAULT 'CUSTOMER'")
+    }
 
-    /** Customers matching [query] (name or phone), people who owe money first, then most recent. */
-    fun summaries(query: String = ""): List<CustomerSummary> {
+    /** Books of one [kind] matching [query] (name or phone): open balances first, then most recent. */
+    fun summaries(kind: PartyKind, query: String = ""): List<CustomerSummary> {
         val like = "%" + query.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         val sql = """
-            SELECT c.id, c.name, c.phone, c.note, c.created,
+            SELECT c.id, c.name, c.phone, c.note, c.created, c.kind,
                    COALESCE(SUM(CASE WHEN e.type = 'CREDIT' THEN e.amount ELSE -e.amount END), 0) AS bal,
                    COALESCE(MAX(e.time), c.created) AS last
             FROM customers c LEFT JOIN entries e ON e.customer_id = c.id
-            WHERE c.name LIKE ? ESCAPE '\' OR c.phone LIKE ? ESCAPE '\'
+            WHERE c.kind = ? AND (c.name LIKE ? ESCAPE '\' OR c.phone LIKE ? ESCAPE '\')
             GROUP BY c.id
             ORDER BY (bal > 0) DESC, last DESC"""
-        return readableDatabase.rawQuery(sql, arrayOf(like, like)).use { c ->
+        return readableDatabase.rawQuery(sql, arrayOf(kind.name, like, like)).use { c ->
             buildList {
-                while (c.moveToNext()) add(CustomerSummary(c.toCustomer(), c.getLong(5), c.getLong(6)))
+                while (c.moveToNext()) add(CustomerSummary(c.toCustomer(), c.getLong(6), c.getLong(7)))
             }
         }
     }
 
     fun customer(id: Long): Customer? =
-        readableDatabase.rawQuery("SELECT id, name, phone, note, created FROM customers WHERE id = ?", arrayOf(id.toString()))
+        readableDatabase.rawQuery("SELECT id, name, phone, note, created, kind FROM customers WHERE id = ?", arrayOf(id.toString()))
             .use { c -> if (c.moveToFirst()) c.toCustomer() else null }
 
-    fun addCustomer(name: String, phone: String, note: String): Long =
+    fun addCustomer(kind: PartyKind, name: String, phone: String, note: String): Long =
         writableDatabase.insertOrThrow("customers", null, ContentValues().apply {
             put("name", name); put("phone", phone); put("note", note); put("created", System.currentTimeMillis())
+            put("kind", kind.name)
         })
 
     fun updateCustomer(id: Long, name: String, phone: String, note: String) {
@@ -92,7 +97,7 @@ class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1)
 
     fun exportAll(): BackupData {
         val db = readableDatabase
-        val customers = db.rawQuery("SELECT id, name, phone, note, created FROM customers ORDER BY id", null)
+        val customers = db.rawQuery("SELECT id, name, phone, note, created, kind FROM customers ORDER BY id", null)
             .use { c -> buildList { while (c.moveToNext()) add(c.toCustomer()) } }
         val entries = db.rawQuery("SELECT id, customer_id, type, amount, note, time FROM entries ORDER BY id", null)
             .use { c -> buildList { while (c.moveToNext()) add(c.toEntry()) } }
@@ -109,7 +114,7 @@ class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1)
             data.customers.forEach { c ->
                 db.insertOrThrow("customers", null, ContentValues().apply {
                     put("id", c.id); put("name", c.name); put("phone", c.phone)
-                    put("note", c.note); put("created", c.createdAt)
+                    put("note", c.note); put("created", c.createdAt); put("kind", c.kind.name)
                 })
             }
             data.entries.forEach { e ->
@@ -124,7 +129,10 @@ class KrediDb(context: Context) : SQLiteOpenHelper(context, "kredi.db", null, 1)
         }
     }
 
-    private fun Cursor.toCustomer() = Customer(getLong(0), getString(1), getString(2), getString(3), getLong(4))
+    private fun Cursor.toCustomer() = Customer(
+        getLong(0), getString(1), getString(2), getString(3), getLong(4),
+        runCatching { PartyKind.valueOf(getString(5)) }.getOrDefault(PartyKind.CUSTOMER)
+    )
 
     private fun Cursor.toEntry() = Entry(
         getLong(0), getLong(1),

@@ -11,6 +11,30 @@
     <string name="empty_search">ما لقيت حتى كليان بهاد السمية.</string>
     <string name="menu_backup">حفظ نسخة احتياطية</string>
     <string name="menu_restore">استرجاع نسخة احتياطية</string>
+    <string name="tab_customers">الكليان</string>
+    <string name="tab_suppliers">الفورنيسورات</string>
+
+    <!-- suppliers: the shop owes them -->
+    <string name="total_owed_suppliers">مجموع اللي عليك للفورنيسورات</string>
+    <string name="suppliers_count">%1$d فورنيسور · %2$d باقي عليك ليهم</string>
+    <string name="search_hint_suppliers">قلّب على فورنيسور بالسمية ولا التيليفون</string>
+    <string name="add_supplier">فورنيسور جديد</string>
+    <string name="empty_suppliers">ما كاين حتى فورنيسور.\nزيد الفورنيسورات اللي كتاخد منهم السلعة بالكريدي.</string>
+    <string name="balance_advance_supplier">عندك عندو %1$s</string>
+    <string name="supplier_balance_label_owes">باقي عليك ليه</string>
+    <string name="supplier_balance_label_paid">خلّصتيه كامل ✅</string>
+    <string name="supplier_balance_label_advance">خلّصتيه قدّام (عندك عندو)</string>
+    <string name="supplier_add_credit">+ سلعة بالكريدي</string>
+    <string name="supplier_add_payment">− خلّصتو</string>
+    <string name="supplier_entry_credit">سلعة بالكريدي</string>
+    <string name="supplier_entry_payment">خلّصتو</string>
+    <string name="supplier_credit_title">سلعة بالكريدي من الفورنيسور</string>
+    <string name="supplier_payment_title">خلّصت الفورنيسور</string>
+    <string name="supplier_entry_note">شنو جبتي؟ (ولا رقم الفاتورة)</string>
+    <string name="supplier_new_title">فورنيسور جديد</string>
+    <string name="supplier_name">سمية الفورنيسور ولا الشركة</string>
+    <string name="supplier_saved_credit">تسجّلات السلعة بالكريدي</string>
+    <string name="supplier_saved_payment">تسجّل الخلاص ديال الفورنيسور</string>
 
     <!-- balances -->
     <string name="balance_paid">خالص</string>
@@ -69,7 +93,7 @@
     <string name="backup_done">تحفظات النسخة الاحتياطية ✅</string>
     <string name="backup_failed">ما قدرتش نحفظ: %1$s</string>
     <string name="restore_title">نسترجع هاد النسخة؟</string>
-    <string name="restore_message">فيها %1$d كليان و %2$d عملية.\nالمعلومات اللي كاينين دابا فالتطبيق غادي يتبدلو بيها.</string>
+    <string name="restore_message">فيها %1$d بين كليان وفورنيسور، و %2$d عملية.\nالمعلومات اللي كاينين دابا فالتطبيق غادي يتبدلو بيها.</string>
     <string name="restore_button">استرجع</string>
     <string name="restore_done">ترجعات النسخة ✅</string>
     <string name="restore_failed">هاد الملف ماشي نسخة ديال دفتر الكريدي.</string>

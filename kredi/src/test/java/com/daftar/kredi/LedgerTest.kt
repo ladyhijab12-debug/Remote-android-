@@ -78,10 +78,36 @@ class LedgerTest {
     @Test
     fun backupRoundTrip() {
         val data = BackupData(
-            listOf(Customer(7, "فاطمة \"الزهراء\"", "0611", "حي السلام", 123)),
+            listOf(
+                Customer(7, "فاطمة \"الزهراء\"", "0611", "حي السلام", 123),
+                Customer(8, "شركة الحليب", "0522", "", 124, PartyKind.SUPPLIER),
+            ),
             listOf(Entry(3, 7, EntryType.CREDIT, 4550, "زيت", 456), Entry(4, 7, EntryType.PAYMENT, 1000, "", 789)),
         )
         assertEquals(data, Backup.fromJson(Backup.toJson(data)))
+    }
+
+    @Test
+    fun supplierStatementUsesShopWording() {
+        val text = Ledger.statement(
+            "شركة الحليب",
+            listOf(entry(1, EntryType.CREDIT, 90000, note = "فاتورة 12"), entry(2, EntryType.PAYMENT, 40000)),
+            PartyKind.SUPPLIER,
+        ) { "d$it" }
+        assertTrue(text, text.startsWith("كشف الحساب مع شركة الحليب"))
+        assertTrue(text, text.contains("سلعة بالكريدي ${Money.display(90000)} (فاتورة 12)"))
+        assertTrue(text, text.contains("خلّصتك ${Money.display(40000)}"))
+        assertTrue(text, text.endsWith("باقي عندك عندي: ${Money.display(50000)}"))
+    }
+
+    @Test
+    fun readsVersionOneBackupsAsCustomers() {
+        val v1 = """{"format":"daftar-kredi","version":1,
+            "customers":[{"id":1,"name":"أحمد","phone":"","note":"","createdAt":5}],
+            "entries":[{"id":1,"customerId":1,"type":"CREDIT","amount":500,"note":"","time":6}]}"""
+        val data = Backup.fromJson(v1)
+        assertEquals(PartyKind.CUSTOMER, data.customers.single().kind)
+        assertEquals(500L, data.entries.single().amount)
     }
 
     @Test
@@ -92,6 +118,8 @@ class LedgerTest {
             """{"format":"other","version":1,"customers":[],"entries":[]}""",
             """{"format":"daftar-kredi","version":1,"customers":[],"entries":[{"id":1,"customerId":9,"type":"CREDIT","amount":5,"time":1}]}""",
             """{"format":"daftar-kredi","version":1,"customers":[{"id":1,"name":"a"}],"entries":[{"id":1,"customerId":1,"type":"LOAN","amount":5,"time":1}]}""",
+            """{"format":"daftar-kredi","version":2,"customers":[{"id":1,"name":"a","kind":"BANK"}],"entries":[]}""",
+            """{"format":"daftar-kredi","version":3,"customers":[],"entries":[]}""",
         )
         for (text in bad) {
             try {

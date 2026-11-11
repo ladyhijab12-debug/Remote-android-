@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 class EntryAdapter(private val onLongClick: (Entry) -> Unit) : RecyclerView.Adapter<EntryAdapter.Holder>() {
 
     private var items: List<Entry> = emptyList()
+    var labels: Labels = Labels.of(PartyKind.CUSTOMER)
     private var runningAfter: Map<Long, Long> = emptyMap()
 
     fun submit(newestFirst: List<Entry>) {
@@ -37,7 +38,7 @@ class EntryAdapter(private val onLongClick: (Entry) -> Unit) : RecyclerView.Adap
         fun bind(e: Entry) {
             val ctx = itemView.context
             val credit = e.type == EntryType.CREDIT
-            title.text = ctx.getString(if (credit) R.string.entry_credit else R.string.entry_payment)
+            title.text = ctx.getString(labels.entry(e.type))
             note.text = e.note
             note.visibility = if (e.note.isBlank()) View.GONE else View.VISIBLE
             date.text = "⁦" + Dates.dayTime(e.time) + "⁩"

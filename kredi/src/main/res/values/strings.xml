@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">دفتر الكريدي</string>
+
+    <!-- main screen -->
+    <string name="total_owed">مجموع الكريدي اللي برّا</string>
+    <string name="customers_count">%1$d كليان · %2$d عندهم كريدي</string>
+    <string name="search_hint">قلّب على كليان بالسمية ولا التيليفون</string>
+    <string name="add_customer">كليان جديد</string>
+    <string name="empty_book">الدفتر خاوي.\nزيد أول كليان بالزر اللي لتحت.</string>
+    <string name="empty_search">ما لقيت حتى كليان بهاد السمية.</string>
+    <string name="menu_backup">حفظ نسخة احتياطية</string>
+    <string name="menu_restore">استرجاع نسخة احتياطية</string>
+
+    <!-- balances -->
+    <string name="balance_paid">خالص</string>
+    <string name="balance_advance">عندو عندك %1$s</string>
+    <string name="balance_label_owes">الباقي عليه</string>
+    <string name="balance_label_paid">الحساب خالص ✅</string>
+    <string name="balance_label_advance">خلّص قدّام (عندو عندك)</string>
+    <string name="last_activity">آخر عملية: %1$s</string>
+
+    <!-- customer screen -->
+    <string name="add_credit">+ كريدي</string>
+    <string name="add_payment">− خلّص</string>
+    <string name="call">📞 عيّط</string>
+    <string name="whatsapp_remind">💬 فكّرو</string>
+    <string name="share_statement">🧾 الكشف</string>
+    <string name="history">العمليات</string>
+    <string name="no_entries">مازال ما كاين حتى عملية.</string>
+    <string name="entry_credit">كريدي</string>
+    <string name="entry_payment">خلّص</string>
+    <string name="running_balance">الباقي من بعد: %1$s</string>
+    <string name="menu_edit">تبديل المعلومات</string>
+    <string name="menu_delete">مسح الكليان</string>
+    <string name="no_phone">ما كاينش رقم التيليفون ديال هاد الكليان. زيدو من «تبديل المعلومات».</string>
+    <string name="no_app">ما لقيتش تطبيق يحل هادشي.</string>
+
+    <!-- customer dialog -->
+    <string name="customer_new_title">كليان جديد</string>
+    <string name="customer_edit_title">تبديل المعلومات</string>
+    <string name="customer_name">السمية</string>
+    <string name="customer_phone">التيليفون (اختياري)</string>
+    <string name="customer_note">ملاحظة (اختياري) — بحال العنوان</string>
+    <string name="name_required">كتب السمية</string>
+
+    <!-- entry dialog -->
+    <string name="credit_title">كريدي جديد</string>
+    <string name="payment_title">خلاص</string>
+    <string name="amount">المبلغ (درهم)</string>
+    <string name="entry_note">شنو خدا؟ (اختياري)</string>
+    <string name="payment_note">ملاحظة (اختياري)</string>
+    <string name="date">التاريخ: %1$s</string>
+    <string name="pay_all">خلّص كلشي</string>
+    <string name="amount_invalid">كتب مبلغ صحيح</string>
+
+    <!-- confirmations -->
+    <string name="save">سجّل</string>
+    <string name="cancel">رجوع</string>
+    <string name="delete">مسح</string>
+    <string name="delete_entry_title">نمسح هاد العملية؟</string>
+    <string name="delete_customer_title">نمسح %1$s؟</string>
+    <string name="delete_customer_message">غادي يتمسحو حتى العمليات ديالو كاملين. ما يمكنش ترجعهم.</string>
+    <string name="saved_credit">تسجّل الكريدي</string>
+    <string name="saved_payment">تسجّل الخلاص</string>
+    <string name="deleted">تمسح</string>
+
+    <!-- backup -->
+    <string name="backup_done">تحفظات النسخة الاحتياطية ✅</string>
+    <string name="backup_failed">ما قدرتش نحفظ: %1$s</string>
+    <string name="restore_title">نسترجع هاد النسخة؟</string>
+    <string name="restore_message">فيها %1$d كليان و %2$d عملية.\nالمعلومات اللي كاينين دابا فالتطبيق غادي يتبدلو بيها.</string>
+    <string name="restore_button">استرجع</string>
+    <string name="restore_done">ترجعات النسخة ✅</string>
+    <string name="restore_failed">هاد الملف ماشي نسخة ديال دفتر الكريدي.</string>
+</resources>

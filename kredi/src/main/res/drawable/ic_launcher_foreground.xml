@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- notebook -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M38,28h32a4,4 0 0 1 4,4v44a4,4 0 0 1 -4,4h-32a4,4 0 0 1 -4,-4v-44a4,4 0 0 1 4,-4z" />
+    <!-- spine -->
+    <path android:fillColor="#FFE3F3EC" android:pathData="M34,32h6v44h-6z" />
+    <!-- lines -->
+    <path android:fillColor="#FF9AC9B4"
+        android:pathData="M45,40h22v3h-22zM45,49h22v3h-22zM45,58h14v3h-14z" />
+    <!-- coin -->
+    <path android:fillColor="#FFF5B82E"
+        android:pathData="M66,70m-9,0a9,9 0 1 1 18,0a9,9 0 1 1 -18,0" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M64.5,65h3v10h-3z" />
+</vector>

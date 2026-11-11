@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FFF4F5F7</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="primary">#FF1B7F5A</color>
+    <color name="primary_dark">#FF12603F</color>
+    <color name="primary_soft">#FFE3F3EC</color>
+    <color name="text">#FF1B1D21</color>
+    <color name="text_dim">#FF6B7280</color>
+    <color name="debt">#FFD64545</color>
+    <color name="debt_soft">#FFFBE9E9</color>
+    <color name="paid">#FF1B7F5A</color>
+    <color name="advance">#FF2F6BE0</color>
+    <color name="whatsapp">#FF25D366</color>
+    <color name="divider">#FFE5E7EB</color>
+</resources>

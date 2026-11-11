@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AndroidTvRemote"
 include(":app")
+include(":kredi")

@@ -79,6 +79,12 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/alertBtn"
+                style="@style/Btn"
+                android:layout_height="44dp"
+                android:textSize="14sp" />
+
+            <TextView
                 android:id="@+id/startBtn"
                 style="@style/Btn.Main"
                 android:text="@string/start" />
@@ -128,11 +134,24 @@
                 style="@style/Value"
                 android:textSize="30sp" />
 
-            <TextView style="@style/Label" android:text="@string/lengths" />
+            <TextView style="@style/Label" android:text="@string/interval" />
+            <TextView android:id="@+id/liveInterval" style="@style/Value" android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/restBtn"
+                style="@style/Btn.Main"
+                android:layout_height="60dp"
+                android:text="@string/rest"
+                android:textSize="20sp" />
+
+            <TextView style="@style/Label" android:layout_marginTop="8dp" android:text="@string/lengths" />
             <TextView android:id="@+id/liveLengths" style="@style/Value" />
 
             <TextView style="@style/Label" android:text="@string/pace" />
             <TextView android:id="@+id/livePace" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/interval_pace" />
+            <TextView android:id="@+id/liveIntervalPace" style="@style/Value" />
 
             <TextView style="@style/Label" android:text="@string/last_length" />
             <TextView android:id="@+id/liveLast" style="@style/Value" />
@@ -143,12 +162,18 @@
             <TextView style="@style/Label" android:text="@string/strokes" />
             <TextView android:id="@+id/liveStrokes" style="@style/Value" />
 
+            <TextView style="@style/Label" android:text="@string/stroke_rate" />
+            <TextView android:id="@+id/liveStrokeRate" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/dps" />
+            <TextView android:id="@+id/liveDps" style="@style/Value" />
+
             <TextView style="@style/Label" android:text="@string/swolf" />
             <TextView android:id="@+id/liveSwolf" style="@style/Value" />
 
             <TextView
                 android:id="@+id/addLengthBtn"
-                style="@style/Btn.Main"
+                style="@style/Btn"
                 android:layout_height="64dp"
                 android:text="@string/add_length"
                 android:textSize="20sp" />

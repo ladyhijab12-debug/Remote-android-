@@ -33,6 +33,7 @@ class SwimActivity : Activity() {
     }
 
     private var poolLength = 50
+    private var alertEvery = 0
     private var showingHistory = false
     private var savedSession: SwimSession? = null
 
@@ -40,6 +41,7 @@ class SwimActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_swim)
         poolLength = prefs().getInt(KEY_POOL, 50)
+        alertEvery = prefs().getInt(KEY_ALERT, 0)
 
         click(R.id.poolMinus) { setPool(poolLength - 1) }
         click(R.id.poolPlus) { setPool(poolLength + 1) }
@@ -50,6 +52,13 @@ class SwimActivity : Activity() {
             showingHistory = true
             render()
         }
+        click(R.id.alertBtn) {
+            val next = ALERT_STEPS[(ALERT_STEPS.indexOf(alertEvery) + 1) % ALERT_STEPS.size]
+            alertEvery = next
+            prefs().edit().putInt(KEY_ALERT, next).apply()
+            render()
+        }
+        click(R.id.restBtn) { toggleRest() }
         click(R.id.addLengthBtn) { addLength() }
         click(R.id.removeLengthBtn) { SwimTracker.removeLength() }
         click(R.id.pauseBtn) {
@@ -81,21 +90,60 @@ class SwimActivity : Activity() {
         handler.removeCallbacks(tick)
     }
 
-    /** While swimming, any hardware button counts a length: buttons work when the screen is wet. */
+    /**
+     * Hardware buttons work when the screen is wet. With automatic counting a press is the Garmin
+     * lap button: rest / go. With manual counting a press counts a length and a long press rests.
+     */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        val swimming = SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED
-        if (swimming && keyCode in LENGTH_KEYS) {
-            if (event.repeatCount == 0) addLength()
+        if (swimming() && keyCode in SWIM_KEYS) {
+            event.startTracking()
             return true
         }
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun addLength() {
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
+        if (swimming() && keyCode in SWIM_KEYS) {
+            longPressed = true
+            if (SwimTracker.session?.isResting == false) toggleRest()
+            return true
+        }
+        return super.onKeyLongPress(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (swimming() && keyCode in SWIM_KEYS) {
+            val wasLong = longPressed
+            longPressed = false
+            if (!wasLong && !event.isCanceled) {
+                val resting = SwimTracker.session?.isResting == true
+                if (resting || SwimTracker.autoLengths) toggleRest() else addLength()
+            }
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
+    private var longPressed = false
+
+    private fun swimming() =
+        SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED
+
+    private fun toggleRest() {
         if (SwimTracker.state != SwimTracker.State.ACTIVE) return
+        SwimTracker.toggleRest()
+        buzz(if (SwimTracker.session?.isResting == true) 400 else 200)
+    }
+
+    private fun addLength() {
+        if (SwimTracker.state != SwimTracker.State.ACTIVE || SwimTracker.session?.isResting == true) return
         SwimTracker.addLength()
+        buzz(120)
+    }
+
+    private fun buzz(millis: Long) {
         getSystemService(Vibrator::class.java)
-            ?.vibrate(VibrationEffect.createOneShot(120, VibrationEffect.DEFAULT_AMPLITUDE))
+            ?.vibrate(VibrationEffect.createOneShot(millis, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
     private fun setPool(meters: Int) {
@@ -125,6 +173,7 @@ class SwimActivity : Activity() {
 
     private fun startSwim() {
         text(R.id.setupMessage, "")
+        SwimTracker.alertEveryM = alertEvery
         SwimService.send(this, SwimService.ACTION_START, poolLength)
     }
 
@@ -159,27 +208,42 @@ class SwimActivity : Activity() {
             else -> {
                 show(Screen.SETUP)
                 text(R.id.poolValue, getString(R.string.meters_fmt, poolLength))
+                text(
+                    R.id.alertBtn,
+                    if (alertEvery == 0) getString(R.string.alert_off) else getString(R.string.alert_fmt, alertEvery),
+                )
             }
         }
     }
 
     private fun renderLive(s: SwimSession, state: SwimTracker.State) {
+        val now = SwimTracker.activeMillis()
         text(
             R.id.liveStatus,
-            when (state) {
-                SwimTracker.State.STARTING -> getString(R.string.starting)
-                SwimTracker.State.PAUSED -> getString(R.string.paused)
+            when {
+                state == SwimTracker.State.STARTING -> getString(R.string.starting)
+                state == SwimTracker.State.PAUSED -> getString(R.string.paused)
+                s.isResting -> getString(R.string.resting_fmt, SwimFormat.duration(s.currentRestMillis(now)))
                 else -> ""
             },
         )
         text(R.id.liveDistance, "${s.distanceM} m")
-        text(R.id.liveTime, SwimFormat.duration(SwimTracker.activeMillis()))
+        text(R.id.liveTime, SwimFormat.duration(now))
+        val current = s.currentInterval
+        text(
+            R.id.liveInterval,
+            "#${current.number} · ${current.distanceM} m · ${SwimFormat.duration(current.millis)}",
+        )
         text(R.id.liveLengths, s.lengths.size.toString())
         text(R.id.livePace, SwimFormat.pace(s.paceMillisPer100))
+        text(R.id.liveIntervalPace, SwimFormat.pace(current.paceMillisPer100))
         text(R.id.liveLast, s.lastLength?.let { SwimFormat.split(it.millis) } ?: "--")
         text(R.id.liveHr, s.heartRate?.toString() ?: "--")
         text(R.id.liveStrokes, s.strokesTotal?.toString() ?: "--")
+        text(R.id.liveStrokeRate, SwimFormat.decimal(s.lastLength?.strokeRate))
+        text(R.id.liveDps, s.lastLength?.metersPerStroke?.let { String.format(Locale.US, "%.2f", it) } ?: "--")
         text(R.id.liveSwolf, s.lastLength?.swolf?.toString() ?: "--")
+        text(R.id.restBtn, getString(if (s.isResting) R.string.go else R.string.rest))
         text(R.id.pauseBtn, getString(if (state == SwimTracker.State.PAUSED) R.string.resume else R.string.pause))
         text(R.id.liveMode, getString(if (SwimTracker.autoLengths) R.string.mode_auto else R.string.mode_manual))
     }
@@ -210,7 +274,9 @@ class SwimActivity : Activity() {
 
     companion object {
         private const val KEY_POOL = "pool"
-        private val LENGTH_KEYS = setOf(
+        private const val KEY_ALERT = "alert"
+        private val ALERT_STEPS = listOf(0, 100, 200, 400, 500, 1000)
+        private val SWIM_KEYS = setOf(
             KeyEvent.KEYCODE_BACK,
             KeyEvent.KEYCODE_STEM_PRIMARY,
             KeyEvent.KEYCODE_STEM_1,

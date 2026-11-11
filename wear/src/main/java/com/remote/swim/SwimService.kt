@@ -12,6 +12,8 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.health.services.client.ExerciseClient
@@ -42,6 +44,14 @@ object SwimTracker {
     /** Called on the main thread whenever anything above changes. */
     var onChange: (() -> Unit)? = null
 
+    /** Vibrate every this many metres, as a Garmin distance alert does; 0 turns it off. */
+    var alertEveryM = 0
+
+    /** Called when the swimmer passes an alert distance. */
+    var onAlert: (() -> Unit)? = null
+
+    private var alertedDistanceM = 0
+
     // Swim time is known exactly at one instant and runs on from there while active.
     private var baseActiveMs = 0L
     private var baseWallMs = 0L
@@ -52,6 +62,7 @@ object SwimTracker {
     fun begin(poolLengthM: Int) {
         session = SwimSession(poolLengthM, System.currentTimeMillis())
         autoLengths = false
+        alertedDistanceM = 0
         baseActiveMs = 0L
         baseWallMs = System.currentTimeMillis()
         set(State.STARTING)
@@ -85,6 +96,16 @@ object SwimTracker {
         notifyChanged()
     }
 
+    /** Rest at the wall, or push off again: the Garmin lap-button behaviour. */
+    fun toggleRest() {
+        val s = session ?: return
+        if (state != State.ACTIVE) return
+        if (s.isResting) s.endRest(activeMillis())
+        // Without automatic counting, stopping at the wall is also the end of a length.
+        else s.startRest(activeMillis(), finishLength = !autoLengths)
+        notifyChanged()
+    }
+
     fun clear() {
         session = null
         state = State.IDLE
@@ -92,6 +113,9 @@ object SwimTracker {
     }
 
     fun notifyChanged() {
+        val distance = session?.distanceM ?: 0
+        if (SwimFormat.crossedAlert(alertedDistanceM, distance, alertEveryM)) onAlert?.invoke()
+        alertedDistanceM = distance
         onChange?.invoke()
     }
 }
@@ -139,6 +163,11 @@ class SwimService : Service() {
         if (SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED) return
         ending = false
         SwimTracker.begin(poolLengthM)
+        SwimTracker.onAlert = {
+            // Three pulses, so it cannot be mistaken for the single buzz of a counted length.
+            getSystemService(Vibrator::class.java)
+                ?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 250, 150, 250, 150, 250), -1))
+        }
         goForeground()
 
         val exercise = try {
@@ -268,6 +297,7 @@ class SwimService : Service() {
             Log.w(TAG, "clearing callback failed", e)
         }
         usingHealthServices = false
+        SwimTracker.onAlert = null
         lapCount = 0L
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

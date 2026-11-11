@@ -23,8 +23,17 @@
     <string name="back">رجوع</string>
     <string name="paused">متوقف مؤقتاً</string>
     <string name="starting">جاري التشغيل…</string>
-    <string name="mode_auto">الساعة تحسب الأطوال تلقائياً</string>
-    <string name="mode_manual">عدّ يدوي: اضغط «+ طول» أو زر الرجوع عند كل حائط</string>
+    <string name="mode_auto">الساعة تحسب الأطوال. الزر الجانبي: راحة / انطلاق</string>
+    <string name="mode_manual">عدّ يدوي. الزر الجانبي: ضغطة = طول، ضغطة طويلة = راحة</string>
+    <string name="rest">راحة</string>
+    <string name="go">انطلاق</string>
+    <string name="resting_fmt">راحة %1$s</string>
+    <string name="interval">المجموعة</string>
+    <string name="interval_pace">معدل المجموعة / 100م</string>
+    <string name="stroke_rate">ضربات / دقيقة</string>
+    <string name="dps">متر / ضربة</string>
+    <string name="alert_off">تنبيه المسافة: متوقف</string>
+    <string name="alert_fmt">تنبيه كل %1$d م</string>
     <string name="need_permission">لازم تسمح بإذن النشاط البدني باش يخدم التتبع</string>
     <string name="no_history">ما كاين حتى حصة مسجلة</string>
     <string name="notif_title">حصة سباحة جارية</string>

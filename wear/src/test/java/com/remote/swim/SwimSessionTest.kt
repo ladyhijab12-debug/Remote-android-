@@ -114,7 +114,84 @@ class SwimSessionTest {
         s.onActiveTime(60_000)
         val text = SwimFormat.summary(s)
         assertEquals(true, text.contains("المسافة: 50 م"))
-        assertEquals(true, text.contains("الوقت: 1:00"))
+        assertEquals(true, text.contains("الوقت الكلي: 1:00"))
         assertEquals(true, text.contains("1. 0:48.0 · 38 ضربة · SWOLF 86"))
+    }
+
+    @Test
+    fun restSplitsTheSwimIntoIntervals() {
+        val s = SwimSession(50)
+        s.addManualLength(50_000)
+        // Manual counting: stopping at the wall counts the length just swum.
+        s.startRest(102_000, finishLength = true)
+        assertEquals(100, s.distanceM)
+        assertEquals(20_000L, s.currentRestMillis(122_000))
+        s.endRest(132_000)
+        assertEquals(2, s.interval)
+        s.addManualLength(180_000)
+        assertEquals(48_000L, s.lengths[2].millis)
+
+        val intervals = s.intervals
+        assertEquals(listOf(100, 50), intervals.map { it.distanceM })
+        assertEquals(30_000L, intervals[0].restAfterMillis)
+        assertEquals(102_000L, intervals[0].paceMillisPer100)
+        assertEquals(150_000L, s.swimMillis)
+        assertEquals(30_000L, s.restMillis)
+        // Pace ignores the 30 s at the wall: 150 s for 150 m.
+        assertEquals(100_000L, s.paceMillisPer100)
+        assertEquals(true, SwimFormat.summary(s).contains("1. 100 م · 1:42 · 1:42/100م · راحة 0:30"))
+    }
+
+    @Test
+    fun restRightAfterALengthDoesNotCountAnother() {
+        val s = SwimSession(50)
+        s.addManualLength(50_000)
+        s.startRest(52_000, finishLength = true)
+        assertEquals(50, s.distanceM)
+    }
+
+    @Test
+    fun lengthDetectedDuringRestEndsWhenTheRestBegan() {
+        val s = SwimSession(50)
+        s.onSensorLengths(1, 50_000)
+        s.startRest(101_000, finishLength = false)
+        s.onSensorLengths(2, 106_000) // the watch noticed the wall touch late
+        s.endRest(121_000)
+        assertEquals(51_000L, s.lengths[1].millis)
+        assertEquals(1, s.lengths[1].interval)
+        assertEquals(20_000L, s.restMillis)
+        assertEquals(2, s.interval)
+    }
+
+    @Test
+    fun restBeforeSwimmingDoesNotOpenANewInterval() {
+        val s = SwimSession(50)
+        s.startRest(1_000, finishLength = true)
+        s.endRest(11_000)
+        assertEquals(1, s.interval)
+        s.addManualLength(61_000)
+        assertEquals(50_000L, s.lengths[0].millis)
+        assertEquals(10_000L, s.restMillis)
+    }
+
+    @Test
+    fun strokeRateAndDistancePerStroke() {
+        val s = SwimSession(50)
+        s.onStrokes(40)
+        s.addManualLength(60_000)
+        s.onStrokes(90)
+        s.addManualLength(120_000)
+        assertEquals(40.0, s.lengths[0].strokeRate!!, 0.001)
+        assertEquals(1.25, s.lengths[0].metersPerStroke!!, 0.001)
+        assertEquals(45.0, s.avgStrokeRate!!, 0.001)
+        assertEquals(100.0 / 90, s.avgMetersPerStroke!!, 0.001)
+    }
+
+    @Test
+    fun distanceAlerts() {
+        assertEquals(true, SwimFormat.crossedAlert(50, 100, 100))
+        assertEquals(false, SwimFormat.crossedAlert(100, 150, 100))
+        assertEquals(true, SwimFormat.crossedAlert(150, 250, 200))
+        assertEquals(false, SwimFormat.crossedAlert(50, 100, 0))
     }
 }

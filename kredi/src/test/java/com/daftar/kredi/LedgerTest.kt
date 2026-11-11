@@ -76,7 +76,7 @@ class LedgerTest {
 
     @Test
     fun zipBackupCarriesPhotos() {
-        val dir = createTempDir()
+        val dir = kotlin.io.path.createTempDirectory("kredi").toFile()
         try {
             val name = PhotoName.new()
             java.io.File(dir, name).writeBytes(byteArrayOf(1, 2, 3))

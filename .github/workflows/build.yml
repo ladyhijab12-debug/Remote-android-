@@ -53,4 +53,5 @@ jobs:
             - **Daftar-Kredi.apk**: دفتر الكريدي ديال الحانوت (الكليان، الكريدي، الخلاص، التذكير فالواتساب).
             حمّل الملف اللي بغيتي تحت وثبّتو على التيليفون (اسمح بالتثبيت من مصادر غير معروفة).
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        # --continue: run every module's tests even when another module has a failure.
+        run: ./gradlew --no-daemon --continue testDebugUnitTest

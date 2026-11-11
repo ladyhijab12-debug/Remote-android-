@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">حاجب الإعلانات</string>
+    <string name="subtitle">يحجب الإعلانات داخل التطبيقات والمتصفح، بدون روت.</string>
+    <string name="status_on">● الحجب شغّال</string>
+    <string name="status_off">الحجب متوقف</string>
+    <string name="turn_on">تشغيل الحجب</string>
+    <string name="turn_off">إيقاف الحجب</string>
+    <string name="blocked_now">محجوب هذي المرة</string>
+    <string name="blocked_total">إجمالي المحجوب</string>
+    <string name="list_builtin">القائمة الأساسية المدمجة</string>
+    <string name="list_updated">آخر تحديث %1$s</string>
+    <string name="list_info">%1$d موقع إعلانات في القائمة · %2$s</string>
+    <string name="update_list">تحديث قائمة الحجب</string>
+    <string name="updating">جاري التحديث…</string>
+    <string name="update_done">تم تحديث قائمة الحجب</string>
+    <string name="update_failed">ما قدرت أحدّث القائمة. تأكدي من الإنترنت. (%1$s)</string>
+    <string name="allow_list">مواقع مسموحة</string>
+    <string name="allow_list_hint">إذا خرب تطبيق أو موقع بسبب الحجب، اكتبي اسم الموقع هنا (كل موقع في سطر) وما راح ينحجب.</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="recent_title">آخر ما انحجب</string>
+    <string name="recent_empty">ما انحجب شي للحين.</string>
+    <string name="vpn_denied">لازم توافقين على طلب الـ VPN عشان يشتغل الحجب. ما يطلع شي من جوالك، الحجب كله داخل الجوال.</string>
+    <string name="how_it_works">الحجب يشتغل عن طريق VPN محلي داخل الجوال: ما يمر عليه إلا طلبات أسماء المواقع (DNS)، وما يرسل بياناتك لأي سيرفر. إعلانات YouTube داخل التطبيق ما تنحجب بهذي الطريقة.</string>
+    <string name="channel_name">حالة الحجب</string>
+    <string name="notification_title">حاجب الإعلانات شغّال</string>
+    <string name="notification_text">الإعلانات محجوبة في كل التطبيقات</string>
+    <string name="stop">إيقاف</string>
+</resources>

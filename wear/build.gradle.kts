@@ -34,7 +34,8 @@ android {
 dependencies {
     // Swim tracking (lengths, distance, strokes, heart rate) from the watch's own sensors.
     implementation("androidx.health:health-services-client:1.0.0")
-    implementation("androidx.concurrent:concurrent-futures:1.2.0")
+    // Health Services returns Guava ListenableFutures.
+    implementation("com.google.guava:guava:33.3.1-android")
     implementation("androidx.core:core-ktx:1.13.1")
 
     testImplementation("junit:junit:4.13.2")

@@ -10,7 +10,7 @@ data class BackupData(val customers: List<Customer>, val entries: List<Entry>)
 object Backup {
 
     private const val FORMAT = "daftar-kredi"
-    private const val VERSION = 2
+    private const val VERSION = 3
 
     fun toJson(data: BackupData): String {
         val customers = JSONArray()
@@ -27,6 +27,7 @@ object Backup {
                 JSONObject()
                     .put("id", e.id).put("customerId", e.customerId).put("type", e.type.name)
                     .put("amount", e.amount).put("note", e.note).put("time", e.time)
+                    .put("ref", e.ref).put("photo", e.photo)
             )
         }
         return JSONObject()
@@ -73,6 +74,9 @@ object Backup {
                     amount = o.getLong("amount").also { require(it > 0) { "bad amount" } },
                     note = o.optString("note"),
                     time = o.getLong("time"),
+                    ref = o.optString("ref"),
+                    // Only a bare file name, never a path, since it is joined to the photo folder.
+                    photo = o.optString("photo").also { require(PhotoName.isValid(it)) { "bad photo name" } },
                 )
             }
         }

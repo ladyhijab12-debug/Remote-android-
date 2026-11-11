@@ -23,6 +23,11 @@ class Labels private constructor(
     val savedCredit: Int,
     val savedPayment: Int,
     val canRemind: Boolean,
+    /** Credits are invoices: they get a number and a photo. */
+    val invoices: Boolean,
+    val creditDate: Int,
+    val paymentDate: Int,
+    val totals: Int,
 ) {
     fun entry(type: EntryType) = if (type == EntryType.CREDIT) entryCredit else entryPayment
 
@@ -49,6 +54,10 @@ class Labels private constructor(
             savedCredit = R.string.saved_credit,
             savedPayment = R.string.saved_payment,
             canRemind = true,
+            invoices = false,
+            creditDate = R.string.date,
+            paymentDate = R.string.date,
+            totals = R.string.totals_customer,
         )
 
         private val SUPPLIER = Labels(
@@ -73,6 +82,10 @@ class Labels private constructor(
             savedCredit = R.string.supplier_saved_credit,
             savedPayment = R.string.supplier_saved_payment,
             canRemind = false,
+            invoices = true,
+            creditDate = R.string.invoice_date,
+            paymentDate = R.string.payment_date,
+            totals = R.string.totals_supplier,
         )
 
         fun of(kind: PartyKind) = if (kind == PartyKind.SUPPLIER) SUPPLIER else CUSTOMER

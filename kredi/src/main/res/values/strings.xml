@@ -24,17 +24,17 @@
     <string name="supplier_balance_label_owes">باقي عليك ليه</string>
     <string name="supplier_balance_label_paid">خلّصتيه كامل ✅</string>
     <string name="supplier_balance_label_advance">خلّصتيه قدّام (عندك عندو)</string>
-    <string name="supplier_add_credit">+ سلعة بالكريدي</string>
-    <string name="supplier_add_payment">− خلّصتو</string>
-    <string name="supplier_entry_credit">سلعة بالكريدي</string>
-    <string name="supplier_entry_payment">خلّصتو</string>
-    <string name="supplier_credit_title">سلعة بالكريدي من الفورنيسور</string>
-    <string name="supplier_payment_title">خلّصت الفورنيسور</string>
-    <string name="supplier_entry_note">شنو جبتي؟ (ولا رقم الفاتورة)</string>
+    <string name="supplier_add_credit">+ فاتورة</string>
+    <string name="supplier_add_payment">− دفعة</string>
+    <string name="supplier_entry_credit">فاتورة</string>
+    <string name="supplier_entry_payment">دفعة</string>
+    <string name="supplier_credit_title">فاتورة جديدة</string>
+    <string name="supplier_payment_title">دفعة للفورنيسور</string>
+    <string name="supplier_entry_note">شنو فيها؟ (اختياري)</string>
     <string name="supplier_new_title">فورنيسور جديد</string>
     <string name="supplier_name">سمية الفورنيسور ولا الشركة</string>
-    <string name="supplier_saved_credit">تسجّلات السلعة بالكريدي</string>
-    <string name="supplier_saved_payment">تسجّل الخلاص ديال الفورنيسور</string>
+    <string name="supplier_saved_credit">تسجّلات الفاتورة</string>
+    <string name="supplier_saved_payment">تسجّلات الدفعة</string>
 
     <!-- balances -->
     <string name="balance_paid">خالص</string>
@@ -97,4 +97,23 @@
     <string name="restore_button">استرجع</string>
     <string name="restore_done">ترجعات النسخة ✅</string>
     <string name="restore_failed">هاد الملف ماشي نسخة ديال دفتر الكريدي.</string>
+
+    <!-- invoices, payments and photos -->
+    <string name="invoice_ref">رقم الفاتورة (اختياري)</string>
+    <string name="invoice_date">تاريخ الفاتورة: %1$s</string>
+    <string name="payment_date">تاريخ الدفعة: %1$s</string>
+    <string name="invoice_title_ref">فاتورة رقم %1$s</string>
+    <string name="edit_entry_title">تبديل العملية</string>
+    <string name="photo_take">📷 صوّر الفاتورة</string>
+    <string name="photo_pick">🖼 من الگاليري</string>
+    <string name="photo_remove">حيّد التصويرة</string>
+    <string name="photo_failed">ما قدرتش نقرا هاد التصويرة</string>
+    <string name="photo_missing">التصويرة ما بقاتش كاينة</string>
+    <string name="status_paid">خالصة ✅</string>
+    <string name="status_partial">خلّصت %1$s · باقي %2$s</string>
+    <string name="status_unpaid">ما تخلّص منها والو</string>
+    <string name="totals_supplier">الفواتير: %1$s  ·  الدفوعات: %2$s</string>
+    <string name="totals_customer">الكريدي: %1$s  ·  الخلاص: %2$s</string>
+    <string name="entry_actions_edit">تبديل</string>
+    <string name="entry_actions_photo">شوف التصويرة</string>
 </resources>

@@ -24,7 +24,12 @@ data class Entry(
     val type: EntryType,
     val amount: Long,
     val note: String,
+    /** For a supplier: when the invoice is dated (or when the payment was made). */
     val time: Long,
+    /** Invoice number, if any. */
+    val ref: String = "",
+    /** File name of the invoice photo in [PhotoStore], if any. */
+    val photo: String = "",
 ) {
     /** What this line adds to the debt: positive for credit, negative for a payment. */
     val signed: Long get() = if (type == EntryType.CREDIT) amount else -amount
@@ -40,6 +45,27 @@ data class CustomerSummary(
 object Ledger {
 
     fun balance(entries: List<Entry>): Long = entries.sumOf { it.signed }
+
+    fun totalCredit(entries: List<Entry>): Long =
+        entries.sumOf { if (it.type == EntryType.CREDIT) it.amount else 0L }
+
+    fun totalPaid(entries: List<Entry>): Long =
+        entries.sumOf { if (it.type == EntryType.PAYMENT) it.amount else 0L }
+
+    /**
+     * How much of each credit / invoice is already paid (credit id → amount).
+     * Payments settle the oldest invoices first.
+     */
+    fun paidPerCredit(entries: List<Entry>): Map<Long, Long> {
+        var pool = totalPaid(entries)
+        return entries.filter { it.type == EntryType.CREDIT }
+            .sortedWith(compareBy({ it.time }, { it.id }))
+            .associate { e ->
+                val paid = minOf(e.amount, pool)
+                pool -= paid
+                e.id to paid
+            }
+    }
 
     /** Everything still owed in these books (advances are not subtracted). */
     fun totalOwed(summaries: List<CustomerSummary>): Long =
@@ -75,8 +101,8 @@ object Ledger {
         val supplier = kind == PartyKind.SUPPLIER
         val lines = entries.sortedWith(compareBy({ it.time }, { it.id })).map { e ->
             val label = when {
-                e.type == EntryType.PAYMENT -> if (supplier) "خلّصتك" else "خلّص"
-                supplier -> "سلعة بالكريدي"
+                e.type == EntryType.PAYMENT -> if (supplier) "دفعة" else "خلّص"
+                supplier -> if (e.ref.isBlank()) "فاتورة" else "فاتورة رقم ${e.ref}"
                 else -> "كريدي"
             }
             val note = if (e.note.isBlank()) "" else " (${e.note})"
@@ -91,6 +117,10 @@ object Ledger {
         return buildString {
             append(if (supplier) "كشف الحساب مع " else "كشف الحساب ديال ").append(name).append("\n\n")
             if (lines.isEmpty()) append("ما كاين حتى عملية.\n") else lines.forEach { append(it).append('\n') }
+            if (supplier && lines.isNotEmpty()) {
+                append('\n').append("مجموع الفواتير: ").append(Money.display(totalCredit(entries)))
+                append('\n').append("مجموع الدفوعات: ").append(Money.display(totalPaid(entries))).append('\n')
+            }
             append('\n').append(total)
         }
     }

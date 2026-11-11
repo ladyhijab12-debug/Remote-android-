@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var empty: TextView
 
     private val backupLauncher =
-        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
             uri?.let { saveBackup(it) }
         }
 
@@ -95,11 +95,11 @@ class MainActivity : AppCompatActivity() {
                 when (item.itemId) {
                     R.id.action_backup -> {
                         val day = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                        backupLauncher.launch("daftar-kredi-$day.json")
+                        backupLauncher.launch("daftar-kredi-$day.zip")
                         true
                     }
                     R.id.action_restore -> {
-                        restoreLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+                        restoreLauncher.launch(arrayOf("application/zip", "application/json", "text/plain", "application/octet-stream"))
                         true
                     }
                     else -> false
@@ -143,8 +143,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveBackup(uri: Uri) {
         try {
-            val json = Backup.toJson(db.exportAll())
-            contentResolver.openOutputStream(uri, "wt")!!.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+            val data = db.exportAll()
+            contentResolver.openOutputStream(uri, "wt")!!.use { out ->
+                BackupArchive.write(out, data) { PhotoStore.file(this, it) }
+            }
             Toast.makeText(this, R.string.backup_done, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.backup_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
@@ -152,13 +154,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun askRestore(uri: Uri) {
-        val data = try {
-            val text = contentResolver.openInputStream(uri)!!.use { it.readBytes().toString(Charsets.UTF_8) }
-            Backup.fromJson(text)
+        val restored = try {
+            BackupArchive.read(contentResolver.openInputStream(uri)!!.use { it.readBytes() })
         } catch (e: Exception) {
             Toast.makeText(this, R.string.restore_failed, Toast.LENGTH_LONG).show()
             return
         }
+        val data = restored.data
         Dialogs.confirm(
             this,
             getString(R.string.restore_title),
@@ -166,6 +168,9 @@ class MainActivity : AppCompatActivity() {
             R.string.restore_button,
         ) {
             db.replaceAll(data)
+            val dir = PhotoStore.dir(this)
+            restored.photos.forEach { (name, bytes) -> java.io.File(dir, name).writeBytes(bytes) }
+            PhotoStore.cleanup(this, db.photoNames())
             refresh()
             Toast.makeText(this, R.string.restore_done, Toast.LENGTH_SHORT).show()
         }

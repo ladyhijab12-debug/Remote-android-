@@ -3,7 +3,9 @@ package com.daftar.kredi
 import android.app.DatePickerDialog
 import android.content.Context
 import android.view.LayoutInflater
+import android.view.View
 import android.view.WindowManager
+import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -51,27 +53,77 @@ object Dialogs {
         dialog.show()
     }
 
-    /** New credit or payment. [balance] is what the customer owes now, offered as "pay everything". */
+    /** Lets the entry dialog ask the screen for a camera shot or a gallery picture (stored name, or null). */
+    interface PhotoSource {
+        fun take(onDone: (String?) -> Unit)
+        fun pick(onDone: (String?) -> Unit)
+    }
+
+    /**
+     * New ([existing] null) or edited credit / payment. [balance] is what is owed now, offered as
+     * "pay everything". For suppliers a credit is an invoice, with a number and a photo.
+     */
     fun entry(
         context: Context,
         labels: Labels,
         type: EntryType,
         balance: Long,
-        onSave: (amount: Long, note: String, time: Long) -> Unit,
+        existing: Entry?,
+        photos: PhotoSource,
+        onViewPhoto: (String) -> Unit,
+        onSave: (amount: Long, note: String, time: Long, ref: String, photo: String) -> Unit,
     ) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_entry, null)
         val amountLayout = view.findViewById<TextInputLayout>(R.id.amount_layout)
         val amount = view.findViewById<TextInputEditText>(R.id.amount)
+        val refLayout = view.findViewById<TextInputLayout>(R.id.ref_layout)
+        val ref = view.findViewById<TextInputEditText>(R.id.ref)
         val noteLayout = view.findViewById<TextInputLayout>(R.id.note_layout)
         val note = view.findViewById<TextInputEditText>(R.id.note)
         val dateButton = view.findViewById<MaterialButton>(R.id.date)
+        val photoRow = view.findViewById<View>(R.id.photo_row)
+        val preview = view.findViewById<ImageView>(R.id.photo_preview)
+        val removePhoto = view.findViewById<MaterialButton>(R.id.photo_remove)
         val credit = type == EntryType.CREDIT
+        val invoice = credit && labels.invoices
         noteLayout.hint = context.getString(if (credit) labels.creditNote else R.string.payment_note)
+        refLayout.visibility = if (invoice) View.VISIBLE else View.GONE
+        photoRow.visibility = if (invoice) View.VISIBLE else View.GONE
 
-        // Today by default; an earlier day can be picked when copying an old paper notebook.
-        val time = Calendar.getInstance()
+        existing?.let {
+            amount.setText(Money.plain(it.amount))
+            note.setText(it.note)
+            ref.setText(it.ref)
+        }
+
+        // Photo shown in the dialog; photos taken here and then dropped are deleted again.
+        val original = existing?.photo.orEmpty()
+        var photo = original
+        val taken = mutableListOf<String>()
+        fun showPhoto() {
+            val thumb = if (photo.isEmpty()) null else PhotoStore.thumbnail(context, photo, 200)
+            preview.setImageBitmap(thumb)
+            preview.visibility = if (thumb != null) View.VISIBLE else View.GONE
+            removePhoto.visibility = if (photo.isNotEmpty()) View.VISIBLE else View.GONE
+        }
+        val gotPhoto: (String?) -> Unit = { name ->
+            if (name != null) {
+                taken += name
+                photo = name
+                showPhoto()
+            }
+        }
+        showPhoto()
+        view.findViewById<MaterialButton>(R.id.photo_take).setOnClickListener { photos.take(gotPhoto) }
+        view.findViewById<MaterialButton>(R.id.photo_pick).setOnClickListener { photos.pick(gotPhoto) }
+        removePhoto.setOnClickListener { photo = ""; showPhoto() }
+        preview.setOnClickListener { if (photo.isNotEmpty()) onViewPhoto(photo) }
+
+        // Today by default; an earlier day for an old invoice or when copying a paper notebook.
+        val time = Calendar.getInstance().apply { existing?.let { timeInMillis = it.time } }
+        val dateLabel = if (credit) labels.creditDate else labels.paymentDate
         fun showDate() {
-            dateButton.text = context.getString(R.string.date, "⁦" + Dates.day(time.timeInMillis) + "⁩")
+            dateButton.text = context.getString(dateLabel, "\u2066" + Dates.day(time.timeInMillis) + "\u2069")
         }
         showDate()
         dateButton.setOnClickListener {
@@ -83,16 +135,27 @@ object Dialogs {
             }.show()
         }
 
+        val title = when {
+            existing != null -> R.string.edit_entry_title
+            credit -> labels.creditTitle
+            else -> labels.paymentTitle
+        }
         val builder = MaterialAlertDialogBuilder(context)
-            .setTitle(if (credit) labels.creditTitle else labels.paymentTitle)
+            .setTitle(title)
             .setView(view)
             .setPositiveButton(R.string.save, null)
             .setNegativeButton(R.string.cancel, null)
-        if (!credit && balance > 0) builder.setNeutralButton(R.string.pay_all, null)
+        if (!credit && existing == null && balance > 0) builder.setNeutralButton(R.string.pay_all, null)
         val dialog = builder.create()
-        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
+        var saved = false
+        dialog.setOnDismissListener {
+            val keep = if (saved) photo else original
+            taken.filter { it != keep }.forEach { PhotoStore.delete(context, it) }
+            if (saved && original.isNotEmpty() && original != photo) PhotoStore.delete(context, original)
+        }
+        if (existing == null) dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         dialog.setOnShowListener {
-            amount.requestFocus()
+            if (existing == null) amount.requestFocus()
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
                 amount.setText(Money.plain(balance))
                 amount.setSelection(amount.text?.length ?: 0)
@@ -102,7 +165,12 @@ object Dialogs {
                 if (cents == null) {
                     amountLayout.error = context.getString(R.string.amount_invalid)
                 } else {
-                    onSave(cents, note.text.toString().trim(), time.timeInMillis)
+                    saved = true
+                    onSave(
+                        cents, note.text.toString().trim(), time.timeInMillis,
+                        if (invoice) ref.text.toString().trim() else "",
+                        if (invoice) photo else "",
+                    )
                     dialog.dismiss()
                 }
             }

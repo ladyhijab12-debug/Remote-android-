@@ -7,7 +7,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import java.io.File
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
@@ -21,7 +24,7 @@ class CustomerActivity : AppCompatActivity() {
     }
 
     private val db by lazy { (application as KrediApp).db }
-    private val adapter = EntryAdapter { askDeleteEntry(it) }
+    private val adapter = EntryAdapter(onClick = { editEntry(it) }, onLongClick = { askDeleteEntry(it) })
     private lateinit var customer: Customer
     private val labels get() = Labels.of(customer.kind)
     private var entries: List<Entry> = emptyList()
@@ -32,6 +35,44 @@ class CustomerActivity : AppCompatActivity() {
     private lateinit var balanceLabel: TextView
     private lateinit var balanceView: TextView
     private lateinit var empty: TextView
+    private lateinit var totals: TextView
+
+    // Invoice photos: the entry dialog asks, the camera / gallery answers here.
+    private var photoCallback: ((String?) -> Unit)? = null
+    private val cameraFile by lazy { File(File(cacheDir, "camera").apply { mkdirs() }, "shot.jpg") }
+
+    private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val uri = FileProvider.getUriForFile(this, "$packageName.files", cameraFile)
+        deliverPhoto(if (ok) uri else null)
+        cameraFile.delete()
+    }
+
+    private val pickPicture = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        deliverPhoto(uri)
+    }
+
+    private val photoSource = object : Dialogs.PhotoSource {
+        override fun take(onDone: (String?) -> Unit) {
+            photoCallback = onDone
+            cameraFile.delete()
+            try {
+                takePicture.launch(FileProvider.getUriForFile(this@CustomerActivity, "$packageName.files", cameraFile))
+            } catch (e: ActivityNotFoundException) {
+                photoCallback = null
+                Toast.makeText(this@CustomerActivity, R.string.no_app, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        override fun pick(onDone: (String?) -> Unit) {
+            photoCallback = onDone
+            try {
+                pickPicture.launch("image/*")
+            } catch (e: ActivityNotFoundException) {
+                photoCallback = null
+                Toast.makeText(this@CustomerActivity, R.string.no_app, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +91,7 @@ class CustomerActivity : AppCompatActivity() {
         balanceLabel = findViewById(R.id.balance_label)
         balanceView = findViewById(R.id.balance)
         empty = findViewById(R.id.empty)
+        totals = findViewById(R.id.totals)
 
         toolbar.setNavigationOnClickListener { finish() }
         toolbar.inflateMenu(R.menu.customer)
@@ -94,6 +136,10 @@ class CustomerActivity : AppCompatActivity() {
         entries = db.entries(customer.id)
         balance = Ledger.balance(entries)
         adapter.submit(entries)
+        totals.text = getString(
+            labels.totals, Money.display(Ledger.totalCredit(entries)), Money.display(Ledger.totalPaid(entries))
+        )
+        totals.visibility = if (entries.isEmpty()) View.GONE else View.VISIBLE
         empty.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
 
         when {
@@ -113,8 +159,8 @@ class CustomerActivity : AppCompatActivity() {
     }
 
     private fun addEntry(type: EntryType) {
-        Dialogs.entry(this, labels, type, balance) { amount, note, time ->
-            db.addEntry(customer.id, type, amount, note, time)
+        Dialogs.entry(this, labels, type, balance, null, photoSource, ::viewPhoto) { amount, note, time, ref, photo ->
+            db.addEntry(Entry(0, customer.id, type, amount, note, time, ref, photo))
             refresh()
             Toast.makeText(
                 this,
@@ -124,15 +170,40 @@ class CustomerActivity : AppCompatActivity() {
         }
     }
 
+    private fun editEntry(entry: Entry) {
+        Dialogs.entry(this, labels, entry.type, balance, entry, photoSource, ::viewPhoto) { amount, note, time, ref, photo ->
+            db.updateEntry(entry.copy(amount = amount, note = note, time = time, ref = ref, photo = photo))
+            refresh()
+        }
+    }
+
+    private fun viewPhoto(name: String) {
+        startActivity(Intent(this, PhotoActivity::class.java).putExtra(PhotoActivity.EXTRA_NAME, name))
+    }
+
+    private fun deliverPhoto(uri: Uri?) {
+        val callback = photoCallback ?: return
+        photoCallback = null
+        if (uri == null) return callback(null)
+        val name = try {
+            PhotoStore.import(this, uri)
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.photo_failed, Toast.LENGTH_SHORT).show()
+            null
+        }
+        callback(name)
+    }
+
     private fun askDeleteEntry(entry: Entry) {
         val kind = getString(labels.entry(entry.type))
         Dialogs.confirm(
             this,
             getString(R.string.delete_entry_title),
-            "$kind ${Money.display(entry.amount)} — ⁦${Dates.dayTime(entry.time)}⁩",
+            "$kind ${Money.display(entry.amount)} — ⁦${Dates.day(entry.time)}⁩",
             R.string.delete,
         ) {
             db.deleteEntry(entry.id)
+            PhotoStore.delete(this, entry.photo)
             refresh()
             Toast.makeText(this, R.string.deleted, Toast.LENGTH_SHORT).show()
         }
@@ -154,6 +225,7 @@ class CustomerActivity : AppCompatActivity() {
             R.string.delete,
         ) {
             db.deleteCustomer(customer.id)
+            entries.forEach { PhotoStore.delete(this, it.photo) }
             Toast.makeText(this, R.string.deleted, Toast.LENGTH_SHORT).show()
             finish()
         }

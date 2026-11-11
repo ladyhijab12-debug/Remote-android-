@@ -23,6 +23,29 @@
    - **Samsung:** بيطلع طلب على شاشة التلفزيون، اضغط «سماح» بالريموت الأصلي.
 4. خلاص، الريموت جاهز.
 
+## سباحتي — تطبيق السباحة للساعة (Galaxy Watch Ultra / Wear OS)
+
+الموديول `wear/` تطبيق مستقل للساعة كيتبع حصة السباحة فالمسبح.
+
+**شنو كيعطيك:**
+- المسافة (عدد الأطوال × طول المسبح)، الوقت بلا فترات الإيقاف، عدد الأطوال.
+- المعدل لكل 100م، وقت آخر طول وأسرع طول.
+- عدد الضربات و SWOLF (ثواني الطول + ضرباته) لكل طول، والنبض (الحالي، المتوسط، الأقصى) والسعرات — إلا كانت الساعة كتعطيهم للتطبيقات.
+- تقرير كامل فآخر الحصة فيه جدول كل طول، وسجل لآخر 30 حصة.
+
+**كيفاش كيحسب الأطوال:**
+- إلا كان وضع «سباحة المسبح» ديال Health Services متوفر فالساعة، الأطوال كتتحسب تلقائياً من حساسات الساعة.
+- إلا ما كانش متوفر، التطبيق كيرجع للعدّ اليدوي: عند كل حائط اضغط «+ طول» أو أي زر جانبي فالساعة (الأزرار كتخدم والشاشة مبلولة). «حذف آخر طول» كيصحح أي غلط.
+- الشاشة كتكتب ليك لتحت أي وضع خدام.
+
+**الاستعمال:** اختار طول المسبح (25 / 50 أو عدّلو بـ − و +) ← «ابدأ السباحة» ← فالآخر ضغطة طويلة على «إنهاء».
+
+**التثبيت:** حمّل `Swim-Watch.apk` من Actions ← Build APK ← Artifacts ← `SwimWatch-apk`، ومن بعد:
+1. فالساعة: الإعدادات ← حول الساعة ← معلومات البرنامج ← اضغط 7 مرات على «إصدار البرنامج»، ثم خيارات المطوّر ← فعّل «تصحيح ADB» و«التصحيح اللاسلكي».
+2. من الكمبيوتر: `adb pair IP:PORT` ثم `adb connect IP:PORT` ثم `adb install Swim-Watch.apk` (أو من الجوال بتطبيق بحال Bugjaeger).
+
+> التطبيق مبني ومختبر المنطق ديالو بالاختبارات، لكن ما تجربش بعد على ساعة حقيقية فالماء.
+
 ## تحميل الـ APK
 كل push للمستودع يبني APK تلقائياً عن طريق GitHub Actions:
 **Actions ← Build APK ← آخر تشغيل ← Artifacts ← AndroidTvRemote-apk**.
@@ -41,4 +64,5 @@
 - `protocol/Proto.kt` — tiny hand-written protobuf encoder/decoder (no protobuf toolchain needed).
 - `protocol/CertificateManager.kt` — generates the client certificate once (BouncyCastle) and keeps it in app storage, so the TV stays paired.
 - `protocol/SamsungClient.kt` — Samsung Tizen WebSocket API (wss 8002, falls back to ws 8001); the TV asks the user to allow the app once and returns a token that is saved for later. Samsung TVs are discovered with SSDP.
+- `wear/` — Wear OS swim tracker: `SwimSession.kt` (pure distance / pace / SWOLF maths, unit tested), `SwimService.kt` (Health Services `SWIMMING_POOL` exercise with a manual-count fallback), `SwimActivity.kt` (watch UI).
 - `app/src/test/.../FakeTvTest.kt`, `FakeSamsungTest.kt` — run pairing and remote sessions against simulated TVs.

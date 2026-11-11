@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">سباحتي</string>
+    <string name="pool_length">طول المسبح</string>
+    <string name="meters_fmt">%1$d م</string>
+    <string name="start">ابدأ السباحة</string>
+    <string name="history">السجل</string>
+    <string name="distance">المسافة</string>
+    <string name="time">الوقت</string>
+    <string name="lengths">الأطوال</string>
+    <string name="pace">المعدل / 100م</string>
+    <string name="last_length">آخر طول</string>
+    <string name="swolf">SWOLF</string>
+    <string name="strokes">الضربات</string>
+    <string name="heart_rate">النبض</string>
+    <string name="add_length">+ طول</string>
+    <string name="remove_length">− حذف آخر طول</string>
+    <string name="pause">إيقاف مؤقت</string>
+    <string name="resume">استمرار</string>
+    <string name="end_hold">إنهاء (ضغطة طويلة)</string>
+    <string name="end_hint">اضغط مطوّلاً للإنهاء</string>
+    <string name="done">تم</string>
+    <string name="back">رجوع</string>
+    <string name="paused">متوقف مؤقتاً</string>
+    <string name="starting">جاري التشغيل…</string>
+    <string name="mode_auto">الساعة تحسب الأطوال تلقائياً</string>
+    <string name="mode_manual">عدّ يدوي: اضغط «+ طول» أو زر الرجوع عند كل حائط</string>
+    <string name="need_permission">لازم تسمح بإذن النشاط البدني باش يخدم التتبع</string>
+    <string name="no_history">ما كاين حتى حصة مسجلة</string>
+    <string name="notif_title">حصة سباحة جارية</string>
+    <string name="notif_channel">تتبع السباحة</string>
+</resources>

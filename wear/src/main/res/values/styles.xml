@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#000000</color>
+    <color name="accent">#4FC3F7</color>
+    <color name="text">#FFFFFF</color>
+    <color name="dim">#9FB3C8</color>
+
+    <style name="Theme.Swim" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@color/bg</item>
+        <!-- Water on the screen reads as swipes; never let one close the workout. -->
+        <item name="android:windowSwipeToDismiss">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="Btn">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_btn</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Btn.Main">
+        <item name="android:background">@drawable/bg_btn_main</item>
+        <item name="android:textColor">#000000</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Label">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/dim</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="Value">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textDirection">ltr</item>
+    </style>
+</resources>

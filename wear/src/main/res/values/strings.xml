@@ -32,6 +32,17 @@
     <string name="interval_pace">معدل المجموعة / 100م</string>
     <string name="stroke_rate">ضربات / دقيقة</string>
     <string name="dps">متر / ضربة</string>
+    <string name="drill_start">تمرين (Drill)</string>
+    <string name="drill_stop">إيقاف التمرين</string>
+    <string name="drilling_fmt">تمرين %1$s</string>
+    <string name="drill_distance">مسافة التمرين</string>
+    <string name="drill_save">حفظ التمرين</string>
+    <string name="css_test">اختبار CSS</string>
+    <string name="css_test_fmt">اختبار CSS (آخر: %1$s)</string>
+    <string name="css_swim_fmt">CSS: اسبح %1$d م بأقصى جهد ثابت</string>
+    <string name="css_rest">CSS: ارتاح 10 دقائق ثم «انطلاق» لـ 200 م</string>
+    <string name="css_done_fmt">CSS = %1$s /100م — أنهِ الحصة</string>
+    <string name="css_failed">CSS: الاختبار ما كملش صحيح — عاودو</string>
     <string name="lock_off">قفل اللمس فالماء: متوقف</string>
     <string name="lock_on">قفل اللمس فالماء: مفعّل</string>
     <string name="locked_hint">اللمس مقفول أثناء السباحة: ضغطة طويلة على «راحة» أو الزر الجانبي</string>

@@ -11,6 +11,8 @@ class SwimLength(
     val millis: Long,
     val strokes: Int?,
     val poolLengthM: Int,
+    /** Logged by hand as a drill (kick, one arm...), which the sensors cannot count. */
+    val drill: Boolean = false,
 ) {
     /** Seconds plus strokes for the length; lower means more efficient. */
     val swolf: Int? get() = strokes?.let { (millis / 1000.0).roundToInt() + it }
@@ -26,6 +28,7 @@ class SwimLength(
 class SwimInterval(val number: Int, val lengths: List<SwimLength>, val restAfterMillis: Long) {
     val distanceM: Int get() = lengths.sumOf { it.poolLengthM }
     val millis: Long get() = lengths.sumOf { it.millis }
+    val isDrill: Boolean get() = lengths.isNotEmpty() && lengths.all { it.drill }
     val paceMillisPer100: Long? get() = if (distanceM == 0) null else millis * 100 / distanceM
 }
 
@@ -33,7 +36,12 @@ class SwimInterval(val number: Int, val lengths: List<SwimLength>, val restAfter
  * Everything measured in one swim. Distance is always lengths x pool length, so it is exact
  * as long as the length count is right. Plain Kotlin: no Android types, so it is unit tested.
  */
-class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
+class SwimSession(
+    val poolLengthM: Int,
+    val startedAtEpochMs: Long = 0L,
+    /** A Critical Swim Speed test: 400 m all out, a long rest, then 200 m all out. */
+    val cssTest: Boolean = false,
+) {
 
     private val done = mutableListOf<SwimLength>()
     val lengths: List<SwimLength> get() = done
@@ -62,6 +70,19 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
     private var hrSum = 0L
     private var hrCount = 0
     private var restStartMillis = 0L
+    private var drillStartMillis: Long? = null
+    private var drillEndMillis: Long? = null
+
+    /** A drill is being timed; the watch's own length counting is ignored meanwhile. */
+    val isDrilling: Boolean get() = drillStartMillis != null && drillEndMillis == null
+
+    /** The drill was stopped and waits for its distance to be entered. */
+    val drillAwaitingDistance: Boolean get() = drillEndMillis != null
+
+    fun currentDrillMillis(atActiveMillis: Long): Long =
+        drillStartMillis?.let { ((drillEndMillis ?: atActiveMillis) - it).coerceAtLeast(0L) } ?: 0L
+
+    val drillDistanceM: Int get() = done.count { it.drill } * poolLengthM
 
     /** Rest taken after each interval; key 0 is rest before the first length. */
     private val rests = mutableMapOf<Int, Long>()
@@ -140,6 +161,8 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
         val fresh = total - sensorLengths
         if (fresh <= 0) return
         sensorLengths = total
+        // Whatever the sensors think they saw during a drill is replaced by the logged distance.
+        if (drillStartMillis != null) return
         addLengths(fresh, atActiveMillis)
     }
 
@@ -148,6 +171,7 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
      * length is a bounce or a stray touch, not a length, and is ignored; returns whether it counted.
      */
     fun addManualLength(atActiveMillis: Long): Boolean {
+        if (drillStartMillis != null) return false
         if (atActiveMillis - lengthStartMillis < MIN_LENGTH_MILLIS) return false
         addLengths(1, atActiveMillis)
         return true
@@ -165,7 +189,7 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
      * counted yet, so [finishLength] counts it, unless the rest starts too soon to be a length.
      */
     fun startRest(atActiveMillis: Long, finishLength: Boolean) {
-        if (isResting) return
+        if (isResting || drillStartMillis != null) return
         onActiveTime(atActiveMillis)
         if (finishLength && atActiveMillis - lengthStartMillis >= MIN_LENGTH_MILLIS) addLengths(1, atActiveMillis)
         isResting = true
@@ -183,6 +207,69 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
         isResting = false
         lengthStartMillis = atActiveMillis
     }
+
+    /** Start timing a drill from the wall; it always forms an interval of its own. */
+    fun startDrill(atActiveMillis: Long) {
+        if (drillStartMillis != null) return
+        if (isResting) endRest(atActiveMillis)
+        onActiveTime(atActiveMillis)
+        if (done.any { it.interval == interval }) interval++
+        drillStartMillis = atActiveMillis
+    }
+
+    /** Back at the wall: the drill's time is fixed, its distance is entered next. */
+    fun stopDrill(atActiveMillis: Long) {
+        if (!isDrilling) return
+        onActiveTime(atActiveMillis)
+        drillEndMillis = atActiveMillis
+    }
+
+    /** Log the stopped drill as [lengthCount] lengths (0 discards it); a rest starts where it ended. */
+    fun saveDrill(lengthCount: Int) {
+        val start = drillStartMillis ?: return
+        val end = drillEndMillis ?: return
+        val elapsed = end - start
+        for (i in 1..lengthCount) {
+            val millis = elapsed * i / lengthCount - elapsed * (i - 1) / lengthCount
+            done += SwimLength(done.size + 1, interval, millis, null, poolLengthM, drill = true)
+        }
+        // Strokes made during the drill belong to no counted length.
+        strokesAtLastLength = strokesTotal ?: 0L
+        drillStartMillis = null
+        drillEndMillis = null
+        lengthStartMillis = end
+        isResting = true
+        restStartMillis = end
+    }
+
+    /** Distance of the current CSS test swim, or null when there is nothing left to swim. */
+    val cssTargetM: Int?
+        get() = when {
+            !cssTest -> null
+            interval == 1 -> CSS_LONG_M
+            interval == 2 -> CSS_SHORT_M
+            else -> null
+        }
+
+    /** True the moment a CSS test swim is complete and its rest should begin. */
+    val cssTargetReached: Boolean
+        get() = cssTargetM?.let { !isResting && currentInterval.distanceM >= it } ?: false
+
+    /**
+     * Critical Swim Speed as milliseconds per 100 m: (D400 - D200) / (T400 - T200), using the
+     * distances actually swum so pools that do not divide 400 m still give a correct pace.
+     */
+    val cssMillisPer100: Long?
+        get() {
+            if (!cssTest) return null
+            val swims = intervals.filter { !it.isDrill }
+            if (swims.size < 2) return null
+            val (long, short) = swims
+            if (long.distanceM < CSS_LONG_M || short.distanceM < CSS_SHORT_M) return null
+            val metres = long.distanceM - short.distanceM
+            val millis = long.millis - short.millis
+            return if (metres <= 0 || millis <= 0) null else millis * 100 / metres
+        }
 
     private fun addLengths(count: Int, atActiveMillis: Long) {
         onActiveTime(atActiveMillis)
@@ -202,6 +289,8 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
 
     companion object {
         const val MIN_LENGTH_MILLIS = 5_000L
+        const val CSS_LONG_M = 400
+        const val CSS_SHORT_M = 200
     }
 }
 
@@ -248,11 +337,19 @@ object SwimFormat {
         s.avgHeartRate?.let { line("النبض المتوسط", it.toString()) }
         s.maxHeartRate?.let { line("أقصى نبض", it.toString()) }
         s.calories?.let { line("السعرات", it.roundToInt().toString()) }
+        if (s.drillDistanceM > 0) line("مسافة التمارين (drills)", "${s.drillDistanceM} م")
+        s.cssMillisPer100?.let { css ->
+            append("\nاختبار CSS:\n")
+            line("CSS (وتيرة العتبة Z3)", "${pace(css)}/100م")
+            line("تحمل Z2", "${pace(css + 8_000)} – ${pace(css + 12_000)}")
+            line("VO2max Z4", "${pace(css - 5_000)} – ${pace(css - 3_000)}")
+        }
         val intervals = s.intervals
         if (intervals.size > 1) {
             append("\nالمجموعات:\n")
             for (i in intervals) {
                 append("${i.number}. ${i.distanceM} م · ${duration(i.millis)} · ${pace(i.paceMillisPer100)}/100م")
+                if (i.isDrill) append(" · تمرين")
                 if (i.restAfterMillis > 0) append(" · راحة ${duration(i.restAfterMillis)}")
                 append('\n')
             }
@@ -261,6 +358,7 @@ object SwimFormat {
             append("\nالأطوال:\n")
             for (l in s.lengths) {
                 append("${l.number}. ${split(l.millis)}")
+                if (l.drill) append(" · تمرين")
                 l.strokes?.let { append(" · $it ضربة") }
                 l.swolf?.let { append(" · SWOLF $it") }
                 append('\n')

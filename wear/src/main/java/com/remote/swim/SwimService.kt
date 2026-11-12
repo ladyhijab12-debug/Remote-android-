@@ -61,8 +61,8 @@ object SwimTracker {
     fun activeMillis(now: Long = System.currentTimeMillis()): Long =
         if (state == State.ACTIVE) baseActiveMs + (now - baseWallMs).coerceAtLeast(0L) else baseActiveMs
 
-    fun begin(poolLengthM: Int) {
-        session = SwimSession(poolLengthM, System.currentTimeMillis())
+    fun begin(poolLengthM: Int, cssTest: Boolean) {
+        session = SwimSession(poolLengthM, System.currentTimeMillis(), cssTest)
         autoLengths = false
         alertedDistanceM = 0
         baseActiveMs = 0L
@@ -103,7 +103,7 @@ object SwimTracker {
     /** Rest at the wall, or push off again: the Garmin lap-button behaviour. */
     fun toggleRest() {
         val s = session ?: return
-        if (state != State.ACTIVE) return
+        if (state != State.ACTIVE || s.isDrilling || s.drillAwaitingDistance) return
         if (s.isResting) s.endRest(activeMillis())
         // Without automatic counting, stopping at the wall is also the end of a length.
         else s.startRest(activeMillis(), finishLength = !autoLengths)
@@ -116,7 +116,27 @@ object SwimTracker {
         notifyChanged()
     }
 
+    /** Start timing a drill, or stop the one running so its distance can be entered. */
+    fun toggleDrill() {
+        val s = session ?: return
+        if (state != State.ACTIVE || s.drillAwaitingDistance) return
+        if (s.isDrilling) s.stopDrill(activeMillis()) else s.startDrill(activeMillis())
+        notifyChanged()
+    }
+
+    fun saveDrill(lengthCount: Int) {
+        session?.saveDrill(lengthCount)
+        notifyChanged()
+    }
+
     fun notifyChanged() {
+        // A CSS test swim ends itself at 400 m / 200 m, so its time is not padded by a late press.
+        session?.let {
+            if (state == State.ACTIVE && it.cssTargetReached) {
+                it.startRest(activeMillis(), finishLength = false)
+                onAlert?.invoke()
+            }
+        }
         val distance = session?.distanceM ?: 0
         if (SwimFormat.crossedAlert(alertedDistanceM, distance, alertEveryM)) onAlert?.invoke()
         alertedDistanceM = distance
@@ -155,7 +175,7 @@ class SwimService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> start(intent.getIntExtra(EXTRA_POOL, 50))
+            ACTION_START -> start(intent.getIntExtra(EXTRA_POOL, 50), intent.getBooleanExtra(EXTRA_CSS, false))
             ACTION_PAUSE -> pause()
             ACTION_RESUME -> resume()
             ACTION_END -> end()
@@ -165,10 +185,10 @@ class SwimService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun start(poolLengthM: Int) {
+    private fun start(poolLengthM: Int, cssTest: Boolean) {
         if (SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED) return
         ending = false
-        SwimTracker.begin(poolLengthM)
+        SwimTracker.begin(poolLengthM, cssTest)
         SwimTracker.onAlert = {
             // Three pulses, so it cannot be mistaken for the single buzz of a counted length.
             getSystemService(Vibrator::class.java)
@@ -370,6 +390,7 @@ class SwimService : Service() {
         const val ACTION_RESUME = "com.remote.swim.RESUME"
         const val ACTION_END = "com.remote.swim.END"
         const val EXTRA_POOL = "pool"
+        const val EXTRA_CSS = "css"
 
         private val WANTED: Set<DataType<*, *>> = setOf(
             DataType.DISTANCE_TOTAL,
@@ -379,8 +400,9 @@ class SwimService : Service() {
             DataType.CALORIES_TOTAL,
         )
 
-        fun send(context: Context, action: String, pool: Int = 0) {
-            val intent = Intent(context, SwimService::class.java).setAction(action).putExtra(EXTRA_POOL, pool)
+        fun send(context: Context, action: String, pool: Int = 0, cssTest: Boolean = false) {
+            val intent = Intent(context, SwimService::class.java).setAction(action)
+                .putExtra(EXTRA_POOL, pool).putExtra(EXTRA_CSS, cssTest)
             if (action == ACTION_START) context.startForegroundService(intent) else context.startService(intent)
         }
     }

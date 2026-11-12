@@ -198,6 +198,89 @@ class SwimSessionTest {
     }
 
     @Test
+    fun drillIsLoggedByHandAsItsOwnInterval() {
+        val s = SwimSession(50)
+        s.onStrokes(40)
+        s.onSensorLengths(1, 50_000)
+        s.startDrill(60_000)
+        s.onStrokes(55)
+        s.onSensorLengths(2, 100_000) // a kick length the sensors half noticed
+        assertEquals(false, s.addManualLength(110_000))
+        assertEquals(50, s.distanceM)
+        assertEquals(70_000L, s.currentDrillMillis(130_000))
+        s.stopDrill(180_000)
+        assertEquals(true, s.drillAwaitingDistance)
+        s.saveDrill(2)
+
+        assertEquals(150, s.distanceM)
+        assertEquals(100, s.drillDistanceM)
+        assertEquals(listOf(60_000L, 60_000L), s.lengths.drop(1).map { it.millis })
+        assertNull(s.lengths[1].swolf)
+        assertEquals(listOf(false, true), s.intervals.map { it.isDrill })
+        // Back at the wall the rest runs from the end of the drill.
+        assertEquals(true, s.isResting)
+        assertEquals(10_000L, s.currentRestMillis(190_000))
+        s.endRest(200_000)
+        s.onStrokes(97)
+        s.onSensorLengths(3, 250_000)
+        assertEquals(3, s.lengths[3].interval)
+        assertEquals(50_000L, s.lengths[3].millis)
+        assertEquals(42, s.lengths[3].strokes) // drill strokes are not charged to this length
+        assertEquals(true, SwimFormat.summary(s).contains("مسافة التمارين (drills): 100 م"))
+    }
+
+    @Test
+    fun discardedDrillAddsNothing() {
+        val s = SwimSession(50)
+        s.startDrill(10_000)
+        s.stopDrill(70_000)
+        s.saveDrill(0)
+        assertEquals(0, s.distanceM)
+        assertEquals(false, s.drillAwaitingDistance)
+        s.endRest(80_000)
+        assertEquals(1, s.interval)
+    }
+
+    @Test
+    fun cssTestGivesThresholdPace() {
+        val s = SwimSession(50, cssTest = true)
+        assertEquals(400, s.cssTargetM)
+        // 400 m in 6:40.
+        for (i in 1..8) {
+            assertEquals(false, s.cssTargetReached)
+            s.addManualLength(i * 50_000L)
+        }
+        assertEquals(true, s.cssTargetReached)
+        assertNull(s.cssMillisPer100)
+        s.startRest(400_000, finishLength = false)
+        s.endRest(1_000_000)
+        assertEquals(200, s.cssTargetM)
+        // 200 m in 3:10.
+        for (i in 1..4) s.addManualLength(1_000_000 + i * 47_500L)
+        assertEquals(true, s.cssTargetReached)
+        s.startRest(1_190_000, finishLength = false)
+        // (400 - 200) m in (400 - 190) s -> 1:45 per 100 m.
+        assertEquals(105_000L, s.cssMillisPer100)
+        assertNull(s.cssTargetM.takeIf { s.interval > 2 })
+        val text = SwimFormat.summary(s)
+        assertEquals(true, text.contains("CSS (وتيرة العتبة Z3): 1:45/100م"))
+        assertEquals(true, text.contains("تحمل Z2: 1:53 – 1:57"))
+        assertEquals(true, text.contains("VO2max Z4: 1:40 – 1:42"))
+    }
+
+    @Test
+    fun ordinarySwimHasNoCss() {
+        val s = SwimSession(50)
+        for (i in 1..8) s.addManualLength(i * 50_000L)
+        s.startRest(400_000, finishLength = false)
+        s.endRest(500_000)
+        for (i in 1..4) s.addManualLength(500_000 + i * 47_500L)
+        assertNull(s.cssMillisPer100)
+        assertNull(s.cssTargetM)
+        assertEquals(false, s.cssTargetReached)
+    }
+
+    @Test
     fun distanceAlerts() {
         assertEquals(true, SwimFormat.crossedAlert(50, 100, 100))
         assertEquals(false, SwimFormat.crossedAlert(100, 150, 100))

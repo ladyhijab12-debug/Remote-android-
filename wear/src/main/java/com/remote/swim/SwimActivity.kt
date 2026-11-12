@@ -35,6 +35,12 @@ class SwimActivity : Activity() {
     private var poolLength = 50
     private var alertEvery = 0
     private var lockTouch = false
+    private var wantCssTest = false
+    private var drillLengths = 2
+        set(value) {
+            field = value
+            render()
+        }
     private var showingHistory = false
     private var savedSession: SwimSession? = null
 
@@ -49,7 +55,16 @@ class SwimActivity : Activity() {
         click(R.id.poolPlus) { setPool(poolLength + 1) }
         click(R.id.pool25) { setPool(25) }
         click(R.id.pool50) { setPool(50) }
-        click(R.id.startBtn) { requestStart() }
+        click(R.id.startBtn) { requestStart(cssTest = false) }
+        click(R.id.cssBtn) { requestStart(cssTest = true) }
+        click(R.id.drillBtn) { if (!touchLocked()) toggleDrill() }
+        findViewById<View>(R.id.drillBtn).setOnLongClickListener {
+            toggleDrill()
+            true
+        }
+        click(R.id.drillMinus) { drillLengths = (drillLengths - 1).coerceAtLeast(0) }
+        click(R.id.drillPlus) { drillLengths = (drillLengths + 1).coerceAtMost(40) }
+        click(R.id.drillSave) { SwimTracker.saveDrill(drillLengths) }
         click(R.id.historyBtn) {
             showingHistory = true
             render()
@@ -142,10 +157,21 @@ class SwimActivity : Activity() {
     private fun swimming() =
         SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED
 
+    /** The hardware button and the rest button also stop a running drill. */
     private fun toggleRest() {
         if (SwimTracker.state != SwimTracker.State.ACTIVE) return
+        if (SwimTracker.session?.isDrilling == true) {
+            toggleDrill()
+            return
+        }
         SwimTracker.toggleRest()
         buzz(if (SwimTracker.session?.isResting == true) 400 else 200)
+    }
+
+    private fun toggleDrill() {
+        if (SwimTracker.state != SwimTracker.State.ACTIVE) return
+        SwimTracker.toggleDrill()
+        buzz(if (SwimTracker.session?.isDrilling == true) 200 else 400)
     }
 
     private fun addLength() {
@@ -172,7 +198,8 @@ class SwimActivity : Activity() {
         render()
     }
 
-    private fun requestStart() {
+    private fun requestStart(cssTest: Boolean) {
+        wantCssTest = cssTest
         val needed = buildList {
             add(Manifest.permission.ACTIVITY_RECOGNITION)
             add(Manifest.permission.BODY_SENSORS)
@@ -194,7 +221,7 @@ class SwimActivity : Activity() {
     private fun startSwim() {
         text(R.id.setupMessage, "")
         SwimTracker.alertEveryM = alertEvery
-        SwimService.send(this, SwimService.ACTION_START, poolLength)
+        SwimService.send(this, SwimService.ACTION_START, poolLength, wantCssTest)
     }
 
     private fun render() {
@@ -216,6 +243,7 @@ class SwimActivity : Activity() {
                 if (savedSession !== session) {
                     savedSession = session
                     if (session.lengths.isNotEmpty()) SwimHistory.save(this, session)
+                    session.cssMillisPer100?.let { prefs().edit().putLong(KEY_CSS, it).apply() }
                 }
                 show(Screen.TEXT)
                 text(R.id.textBody, SwimFormat.summary(session))
@@ -233,6 +261,11 @@ class SwimActivity : Activity() {
                     if (alertEvery == 0) getString(R.string.alert_off) else getString(R.string.alert_fmt, alertEvery),
                 )
                 text(R.id.lockBtn, getString(if (lockTouch) R.string.lock_on else R.string.lock_off))
+                val css = prefs().getLong(KEY_CSS, 0L)
+                text(
+                    R.id.cssBtn,
+                    if (css > 0) getString(R.string.css_test_fmt, SwimFormat.pace(css)) else getString(R.string.css_test),
+                )
             }
         }
     }
@@ -245,10 +278,18 @@ class SwimActivity : Activity() {
                 state == SwimTracker.State.STARTING -> getString(R.string.starting)
                 state == SwimTracker.State.PAUSED -> getString(R.string.paused)
                 state == SwimTracker.State.ENDING -> getString(R.string.saving)
+                s.isDrilling || s.drillAwaitingDistance ->
+                    getString(R.string.drilling_fmt, SwimFormat.duration(s.currentDrillMillis(now)))
                 s.isResting -> getString(R.string.resting_fmt, SwimFormat.duration(s.currentRestMillis(now)))
                 else -> ""
             },
         )
+        text(R.id.liveCss, cssGuide(s))
+        visible(R.id.liveCss, s.cssTest)
+        visible(R.id.drillPanel, s.drillAwaitingDistance)
+        visible(R.id.drillBtn, !s.drillAwaitingDistance && !s.cssTest)
+        text(R.id.drillBtn, getString(if (s.isDrilling) R.string.drill_stop else R.string.drill_start))
+        text(R.id.drillValue, "${drillLengths * s.poolLengthM} m")
         text(R.id.liveDistance, "${s.distanceM} m")
         text(R.id.liveTime, SwimFormat.duration(now))
         val current = s.currentInterval
@@ -269,6 +310,18 @@ class SwimActivity : Activity() {
         text(R.id.pauseBtn, getString(if (state == SwimTracker.State.PAUSED) R.string.resume else R.string.pause))
         val mode = getString(if (SwimTracker.autoLengths) R.string.mode_auto else R.string.mode_manual)
         text(R.id.liveMode, if (lockTouch) mode + "\n" + getString(R.string.locked_hint) else mode)
+    }
+
+    /** What to do next in a CSS test. */
+    private fun cssGuide(s: SwimSession): String {
+        val target = s.cssTargetM
+        return when {
+            !s.cssTest -> ""
+            s.cssMillisPer100 != null -> getString(R.string.css_done_fmt, SwimFormat.pace(s.cssMillisPer100))
+            target == null -> getString(R.string.css_failed)
+            s.isResting && s.interval == 1 && s.lengths.isNotEmpty() -> getString(R.string.css_rest)
+            else -> getString(R.string.css_swim_fmt, target)
+        }
     }
 
     private fun show(screen: Screen) {
@@ -299,6 +352,7 @@ class SwimActivity : Activity() {
         private const val KEY_POOL = "pool"
         private const val KEY_ALERT = "alert"
         private const val KEY_LOCK = "lock"
+        private const val KEY_CSS = "css"
         private val ALERT_STEPS = listOf(0, 100, 200, 400, 500, 1000)
         private val SWIM_KEYS = setOf(
             KeyEvent.KEYCODE_BACK,

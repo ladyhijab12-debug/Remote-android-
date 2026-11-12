@@ -188,6 +188,16 @@ class SwimSessionTest {
     }
 
     @Test
+    fun doublePressCountsOnce() {
+        val s = SwimSession(50)
+        assertEquals(true, s.addManualLength(50_000))
+        assertEquals(false, s.addManualLength(51_200)) // the button bounced
+        assertEquals(50, s.distanceM)
+        assertEquals(true, s.addManualLength(101_000))
+        assertEquals(51_000L, s.lengths[1].millis)
+    }
+
+    @Test
     fun distanceAlerts() {
         assertEquals(true, SwimFormat.crossedAlert(50, 100, 100))
         assertEquals(false, SwimFormat.crossedAlert(100, 150, 100))

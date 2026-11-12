@@ -34,6 +34,7 @@ class SwimActivity : Activity() {
 
     private var poolLength = 50
     private var alertEvery = 0
+    private var lockTouch = false
     private var showingHistory = false
     private var savedSession: SwimSession? = null
 
@@ -42,6 +43,7 @@ class SwimActivity : Activity() {
         setContentView(R.layout.activity_swim)
         poolLength = prefs().getInt(KEY_POOL, 50)
         alertEvery = prefs().getInt(KEY_ALERT, 0)
+        lockTouch = prefs().getBoolean(KEY_LOCK, false)
 
         click(R.id.poolMinus) { setPool(poolLength - 1) }
         click(R.id.poolPlus) { setPool(poolLength + 1) }
@@ -58,10 +60,21 @@ class SwimActivity : Activity() {
             prefs().edit().putInt(KEY_ALERT, next).apply()
             render()
         }
-        click(R.id.restBtn) { toggleRest() }
-        click(R.id.addLengthBtn) { addLength() }
-        click(R.id.removeLengthBtn) { SwimTracker.removeLength() }
+        click(R.id.lockBtn) {
+            lockTouch = !lockTouch
+            prefs().edit().putBoolean(KEY_LOCK, lockTouch).apply()
+            render()
+        }
+        click(R.id.restBtn) { if (!touchLocked()) toggleRest() }
+        // A long press gets through the touch lock: water rarely holds still that long.
+        findViewById<View>(R.id.restBtn).setOnLongClickListener {
+            toggleRest()
+            true
+        }
+        click(R.id.addLengthBtn) { if (!touchLocked()) addLength() }
+        click(R.id.removeLengthBtn) { if (!touchLocked()) SwimTracker.removeLength() }
         click(R.id.pauseBtn) {
+            if (touchLocked()) return@click
             val action = if (SwimTracker.state == SwimTracker.State.PAUSED) SwimService.ACTION_RESUME
             else SwimService.ACTION_PAUSE
             SwimService.send(this, action)
@@ -136,9 +149,16 @@ class SwimActivity : Activity() {
     }
 
     private fun addLength() {
-        if (SwimTracker.state != SwimTracker.State.ACTIVE || SwimTracker.session?.isResting == true) return
-        SwimTracker.addLength()
-        buzz(120)
+        if (SwimTracker.session?.isResting == true) return
+        if (SwimTracker.addLength()) buzz(120)
+    }
+
+    /** With the lock on, taps do nothing while actually swimming; they work again at the wall. */
+    private fun touchLocked(): Boolean {
+        val locked = lockTouch && SwimTracker.state == SwimTracker.State.ACTIVE &&
+            SwimTracker.session?.isResting == false
+        if (locked) Toast.makeText(this, R.string.locked_hint, Toast.LENGTH_SHORT).show()
+        return locked
     }
 
     private fun buzz(millis: Long) {
@@ -181,7 +201,7 @@ class SwimActivity : Activity() {
         val session = SwimTracker.session
         val state = SwimTracker.state
         val swimming = state == SwimTracker.State.STARTING || state == SwimTracker.State.ACTIVE ||
-            state == SwimTracker.State.PAUSED
+            state == SwimTracker.State.PAUSED || state == SwimTracker.State.ENDING
 
         if (swimming) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -212,6 +232,7 @@ class SwimActivity : Activity() {
                     R.id.alertBtn,
                     if (alertEvery == 0) getString(R.string.alert_off) else getString(R.string.alert_fmt, alertEvery),
                 )
+                text(R.id.lockBtn, getString(if (lockTouch) R.string.lock_on else R.string.lock_off))
             }
         }
     }
@@ -223,6 +244,7 @@ class SwimActivity : Activity() {
             when {
                 state == SwimTracker.State.STARTING -> getString(R.string.starting)
                 state == SwimTracker.State.PAUSED -> getString(R.string.paused)
+                state == SwimTracker.State.ENDING -> getString(R.string.saving)
                 s.isResting -> getString(R.string.resting_fmt, SwimFormat.duration(s.currentRestMillis(now)))
                 else -> ""
             },
@@ -245,7 +267,8 @@ class SwimActivity : Activity() {
         text(R.id.liveSwolf, s.lastLength?.swolf?.toString() ?: "--")
         text(R.id.restBtn, getString(if (s.isResting) R.string.go else R.string.rest))
         text(R.id.pauseBtn, getString(if (state == SwimTracker.State.PAUSED) R.string.resume else R.string.pause))
-        text(R.id.liveMode, getString(if (SwimTracker.autoLengths) R.string.mode_auto else R.string.mode_manual))
+        val mode = getString(if (SwimTracker.autoLengths) R.string.mode_auto else R.string.mode_manual)
+        text(R.id.liveMode, if (lockTouch) mode + "\n" + getString(R.string.locked_hint) else mode)
     }
 
     private fun show(screen: Screen) {
@@ -275,6 +298,7 @@ class SwimActivity : Activity() {
     companion object {
         private const val KEY_POOL = "pool"
         private const val KEY_ALERT = "alert"
+        private const val KEY_LOCK = "lock"
         private val ALERT_STEPS = listOf(0, 100, 200, 400, 500, 1000)
         private val SWIM_KEYS = setOf(
             KeyEvent.KEYCODE_BACK,

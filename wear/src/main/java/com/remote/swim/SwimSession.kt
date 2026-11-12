@@ -143,8 +143,15 @@ class SwimSession(val poolLengthM: Int, val startedAtEpochMs: Long = 0L) {
         addLengths(fresh, atActiveMillis)
     }
 
-    /** The swimmer touched the wall and pressed the button. */
-    fun addManualLength(atActiveMillis: Long) = addLengths(1, atActiveMillis)
+    /**
+     * The swimmer touched the wall and pressed the button. A press too soon after the previous
+     * length is a bounce or a stray touch, not a length, and is ignored; returns whether it counted.
+     */
+    fun addManualLength(atActiveMillis: Long): Boolean {
+        if (atActiveMillis - lengthStartMillis < MIN_LENGTH_MILLIS) return false
+        addLengths(1, atActiveMillis)
+        return true
+    }
 
     /** Undo a miscounted length; its time and strokes go back to the length in progress. */
     fun removeLastLength() {

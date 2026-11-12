@@ -32,6 +32,10 @@
     <string name="interval_pace">معدل المجموعة / 100م</string>
     <string name="stroke_rate">ضربات / دقيقة</string>
     <string name="dps">متر / ضربة</string>
+    <string name="lock_off">قفل اللمس فالماء: متوقف</string>
+    <string name="lock_on">قفل اللمس فالماء: مفعّل</string>
+    <string name="locked_hint">اللمس مقفول أثناء السباحة: ضغطة طويلة على «راحة» أو الزر الجانبي</string>
+    <string name="saving">جاري الحفظ…</string>
     <string name="alert_off">تنبيه المسافة: متوقف</string>
     <string name="alert_fmt">تنبيه كل %1$d م</string>
     <string name="need_permission">لازم تسمح بإذن النشاط البدني باش يخدم التتبع</string>

@@ -11,7 +11,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
@@ -31,7 +33,7 @@ import kotlin.math.roundToInt
 
 /** The swim in progress, shared between the service that measures it and the screen that shows it. */
 object SwimTracker {
-    enum class State { IDLE, STARTING, ACTIVE, PAUSED, ENDED }
+    enum class State { IDLE, STARTING, ACTIVE, PAUSED, ENDING, ENDED }
 
     var state = State.IDLE
         private set
@@ -85,10 +87,12 @@ object SwimTracker {
         baseWallMs = wallMs
     }
 
-    fun addLength() {
-        if (state != State.ACTIVE) return
-        session?.addManualLength(activeMillis())
-        notifyChanged()
+    /** Returns false when the press was ignored (not swimming, or too soon to be a length). */
+    fun addLength(): Boolean {
+        if (state != State.ACTIVE) return false
+        val counted = session?.addManualLength(activeMillis()) ?: false
+        if (counted) notifyChanged()
+        return counted
     }
 
     fun removeLength() {
@@ -129,6 +133,8 @@ class SwimService : Service() {
     private var client: ExerciseClient? = null
     private var usingHealthServices = false
     private var ending = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val finishLater = Runnable { finish() }
 
     private val callback = object : ExerciseUpdateCallback {
         override fun onRegistered() {}
@@ -207,6 +213,11 @@ class SwimService : Service() {
         exercise.setUpdateCallback(callback)
         exercise.startExerciseAsync(config).then(
             {
+                if (ending || SwimTracker.state != SwimTracker.State.STARTING) {
+                    // Ended before the sensors came up: do not leave a workout running.
+                    exercise.endExerciseAsync()
+                    return@then
+                }
                 usingHealthServices = true
                 SwimTracker.autoLengths = DataType.DISTANCE_TOTAL in wanted || DataType.SWIMMING_LAP_COUNT in wanted
                 useDistanceForLengths = DataType.DISTANCE_TOTAL in wanted
@@ -231,20 +242,17 @@ class SwimService : Service() {
 
     private fun handle(update: ExerciseUpdate) {
         val session = SwimTracker.session ?: return
-        if (!usingHealthServices || ending) return
+        if (!usingHealthServices) return
 
         update.activeDurationCheckpoint?.let {
             SwimTracker.syncClock(it.activeDuration.toMillis(), it.time.toEpochMilli())
         }
         val info = update.exerciseStateInfo.state
-        when {
-            info.isEnded -> {
-                // Ended from outside (another workout app took over the sensors).
-                finish()
-                return
+        if (!ending) {
+            when {
+                info.isPaused -> SwimTracker.set(SwimTracker.State.PAUSED)
+                info == ExerciseState.ACTIVE -> SwimTracker.set(SwimTracker.State.ACTIVE)
             }
-            info.isPaused -> SwimTracker.set(SwimTracker.State.PAUSED)
-            info == ExerciseState.ACTIVE -> SwimTracker.set(SwimTracker.State.ACTIVE)
         }
 
         val metrics = update.latestMetrics
@@ -264,7 +272,8 @@ class SwimService : Service() {
             lapCount += metrics.getData(DataType.SWIMMING_LAP_COUNT).sumOf { it.value }
             session.onSensorLengths(lapCount.toInt(), now)
         }
-        SwimTracker.notifyChanged()
+        // Ended by us, or from outside when another workout app took over the sensors.
+        if (info.isEnded) finish() else SwimTracker.notifyChanged()
     }
 
     private fun pause() {
@@ -284,12 +293,23 @@ class SwimService : Service() {
             stopSelf()
             return
         }
+        if (ending) return
         ending = true
-        if (usingHealthServices) client?.endExerciseAsync()
-        finish()
+        if (usingHealthServices) {
+            // The watch often reports the last length only in its final update, so wait for it.
+            SwimTracker.set(SwimTracker.State.ENDING)
+            client?.endExerciseAsync()
+            handler.postDelayed(finishLater, FINAL_UPDATE_WAIT_MS)
+        } else {
+            finish()
+        }
     }
 
     private fun finish() {
+        handler.removeCallbacks(finishLater)
+        if (SwimTracker.state == SwimTracker.State.ENDED || SwimTracker.session == null) return
+        // Book a rest still running, so it shows in the report.
+        SwimTracker.session?.endRest(SwimTracker.activeMillis())
         SwimTracker.set(SwimTracker.State.ENDED)
         try {
             client?.clearUpdateCallbackAsync(callback)
@@ -344,6 +364,7 @@ class SwimService : Service() {
     companion object {
         private const val TAG = "SwimService"
         private const val CHANNEL = "swim"
+        private const val FINAL_UPDATE_WAIT_MS = 3_000L
         const val ACTION_START = "com.remote.swim.START"
         const val ACTION_PAUSE = "com.remote.swim.PAUSE"
         const val ACTION_RESUME = "com.remote.swim.RESUME"

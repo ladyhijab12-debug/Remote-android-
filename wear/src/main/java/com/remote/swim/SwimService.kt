@@ -12,7 +12,12 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -33,7 +38,7 @@ import kotlin.math.roundToInt
 
 /** The swim in progress, shared between the service that measures it and the screen that shows it. */
 object SwimTracker {
-    enum class State { IDLE, STARTING, ACTIVE, PAUSED, ENDING, ENDED }
+    enum class State { IDLE, ARMED, STARTING, ACTIVE, PAUSED, ENDING, ENDED }
 
     var state = State.IDLE
         private set
@@ -110,6 +115,15 @@ object SwimTracker {
         notifyChanged()
     }
 
+    /** Waiting for the wrist to go under water before the swim starts by itself. */
+    fun arm(armed: Boolean) {
+        if (armed && state != State.IDLE && state != State.ENDED) return
+        if (!armed && state != State.ARMED) return
+        session = null
+        state = if (armed) State.ARMED else State.IDLE
+        notifyChanged()
+    }
+
     fun clear() {
         session = null
         state = State.IDLE
@@ -178,11 +192,73 @@ class SwimService : Service() {
             ACTION_START -> start(intent.getIntExtra(EXTRA_POOL, 50), intent.getBooleanExtra(EXTRA_CSS, false))
             ACTION_PAUSE -> pause()
             ACTION_RESUME -> resume()
-            ACTION_END -> end()
+            ACTION_ARM -> arm(intent.getIntExtra(EXTRA_POOL, 50), intent.getBooleanExtra(EXTRA_CSS, false))
+            ACTION_END -> if (SwimTracker.state == SwimTracker.State.ARMED) disarm(stop = true) else end()
             // Restarted by the system with nothing to resume.
-            else -> if (SwimTracker.session == null) stopSelf()
+            else -> if (SwimTracker.session == null && SwimTracker.state != SwimTracker.State.ARMED) stopSelf()
         }
         return START_NOT_STICKY
+    }
+
+    private var water: WaterDetector? = null
+    private var armedPool = 50
+    private var armedCss = false
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val armTimeout = Runnable { disarm(stop = true) }
+
+    private val pressureListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent) {
+            val detector = water ?: return
+            if (detector.onPressure(event.values[0].toDouble(), event.timestamp / 1_000_000)) {
+                disarm(stop = false)
+                getSystemService(Vibrator::class.java)
+                    ?.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
+                start(armedPool, armedCss)
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    }
+
+    /** Watch the barometer and start the swim the moment the wrist goes under water. */
+    private fun arm(poolLengthM: Int, cssTest: Boolean) {
+        if (SwimTracker.state != SwimTracker.State.IDLE && SwimTracker.state != SwimTracker.State.ENDED) return
+        val sensors = getSystemService(SensorManager::class.java)
+        val barometer = sensors?.getDefaultSensor(Sensor.TYPE_PRESSURE)
+        goForeground()
+        if (barometer == null) {
+            // No barometer: behave like a normal start rather than wait for ever.
+            start(poolLengthM, cssTest)
+            return
+        }
+        armedPool = poolLengthM
+        armedCss = cssTest
+        water = WaterDetector()
+        // The barometer is not a wake-up sensor, so keep the CPU awake while waiting.
+        wakeLock = getSystemService(PowerManager::class.java)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "swim:water")
+            ?.apply { acquire(ARM_TIMEOUT_MS) }
+        sensors.registerListener(pressureListener, barometer, SensorManager.SENSOR_DELAY_UI)
+        handler.postDelayed(armTimeout, ARM_TIMEOUT_MS)
+        SwimTracker.arm(true)
+    }
+
+    private fun disarm(stop: Boolean) {
+        handler.removeCallbacks(armTimeout)
+        getSystemService(SensorManager::class.java)?.unregisterListener(pressureListener)
+        water = null
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
+        SwimTracker.arm(false)
+        if (stop) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
+
+    override fun onDestroy() {
+        if (water != null) disarm(stop = false)
+        super.onDestroy()
     }
 
     private fun start(poolLengthM: Int, cssTest: Boolean) {
@@ -389,6 +465,8 @@ class SwimService : Service() {
         const val ACTION_PAUSE = "com.remote.swim.PAUSE"
         const val ACTION_RESUME = "com.remote.swim.RESUME"
         const val ACTION_END = "com.remote.swim.END"
+        const val ACTION_ARM = "com.remote.swim.ARM"
+        private const val ARM_TIMEOUT_MS = 30 * 60_000L
         const val EXTRA_POOL = "pool"
         const val EXTRA_CSS = "css"
 
@@ -403,7 +481,7 @@ class SwimService : Service() {
         fun send(context: Context, action: String, pool: Int = 0, cssTest: Boolean = false) {
             val intent = Intent(context, SwimService::class.java).setAction(action)
                 .putExtra(EXTRA_POOL, pool).putExtra(EXTRA_CSS, cssTest)
-            if (action == ACTION_START) context.startForegroundService(intent) else context.startService(intent)
+            if (action == ACTION_START || action == ACTION_ARM) context.startForegroundService(intent) else context.startService(intent)
         }
     }
 }

@@ -35,6 +35,7 @@ class SwimActivity : Activity() {
     private var poolLength = 50
     private var alertEvery = 0
     private var lockTouch = false
+    private var autoStart = false
     private var wantCssTest = false
     private var drillLengths = 2
         set(value) {
@@ -50,6 +51,7 @@ class SwimActivity : Activity() {
         poolLength = prefs().getInt(KEY_POOL, 50)
         alertEvery = prefs().getInt(KEY_ALERT, 0)
         lockTouch = prefs().getBoolean(KEY_LOCK, false)
+        autoStart = prefs().getBoolean(KEY_AUTO, false)
 
         click(R.id.poolMinus) { setPool(poolLength - 1) }
         click(R.id.poolPlus) { setPool(poolLength + 1) }
@@ -100,8 +102,17 @@ class SwimActivity : Activity() {
             SwimService.send(this, SwimService.ACTION_END)
             true
         }
+        click(R.id.autoBtn) {
+            autoStart = !autoStart
+            prefs().edit().putBoolean(KEY_AUTO, autoStart).apply()
+            render()
+        }
         click(R.id.textDone) {
-            if (showingHistory) showingHistory = false else SwimTracker.clear()
+            when {
+                SwimTracker.state == SwimTracker.State.ARMED -> SwimService.send(this, SwimService.ACTION_END)
+                showingHistory -> showingHistory = false
+                else -> SwimTracker.clear()
+            }
             render()
         }
     }
@@ -221,7 +232,8 @@ class SwimActivity : Activity() {
     private fun startSwim() {
         text(R.id.setupMessage, "")
         SwimTracker.alertEveryM = alertEvery
-        SwimService.send(this, SwimService.ACTION_START, poolLength, wantCssTest)
+        val action = if (autoStart) SwimService.ACTION_ARM else SwimService.ACTION_START
+        SwimService.send(this, action, poolLength, wantCssTest)
     }
 
     private fun render() {
@@ -234,6 +246,11 @@ class SwimActivity : Activity() {
         else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         when {
+            state == SwimTracker.State.ARMED -> {
+                show(Screen.TEXT)
+                text(R.id.textBody, getString(R.string.waiting_water))
+                text(R.id.textDone, getString(R.string.cancel))
+            }
             showingHistory && !swimming -> {
                 show(Screen.TEXT)
                 text(R.id.textBody, SwimHistory.load(this).ifEmpty { getString(R.string.no_history) })
@@ -261,6 +278,7 @@ class SwimActivity : Activity() {
                     if (alertEvery == 0) getString(R.string.alert_off) else getString(R.string.alert_fmt, alertEvery),
                 )
                 text(R.id.lockBtn, getString(if (lockTouch) R.string.lock_on else R.string.lock_off))
+                text(R.id.autoBtn, getString(if (autoStart) R.string.auto_on else R.string.auto_off))
                 val css = prefs().getLong(KEY_CSS, 0L)
                 text(
                     R.id.cssBtn,
@@ -352,6 +370,7 @@ class SwimActivity : Activity() {
         private const val KEY_POOL = "pool"
         private const val KEY_ALERT = "alert"
         private const val KEY_LOCK = "lock"
+        private const val KEY_AUTO = "auto"
         private const val KEY_CSS = "css"
         private val ALERT_STEPS = listOf(0, 100, 200, 400, 500, 1000)
         private val SWIM_KEYS = setOf(

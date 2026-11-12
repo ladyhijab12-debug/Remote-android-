@@ -85,6 +85,12 @@
                 android:textSize="14sp" />
 
             <TextView
+                android:id="@+id/autoBtn"
+                style="@style/Btn"
+                android:layout_height="44dp"
+                android:textSize="14sp" />
+
+            <TextView
                 android:id="@+id/lockBtn"
                 style="@style/Btn"
                 android:layout_height="44dp"

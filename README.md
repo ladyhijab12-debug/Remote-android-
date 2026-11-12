@@ -43,6 +43,7 @@
 - ضغطتين متتابعتين فأقل من 5 ثواني كيتحسبو طول واحد، وآخر طول ما كيضيعش عند الإنهاء.
 - **تسجيل التمارين (Drill log):** زر «تمرين» كيبدا عدّاد التمرين (رجلين، ذراع واحدة…)، ومن بعد «إيقاف التمرين» كتدخّلي المسافة بـ − و + وكتحفظيها. التمرين كيتحسب فالمسافة والوقت بلا ضربات ولا SWOLF، وكيبان فالتقرير كمجموعة «تمرين».
 - **اختبار CSS (السرعة الحرجة):** من شاشة البداية «اختبار CSS» ← 400م بأقصى جهد ثابت ← راحة 10 دقائق ← 200م. الساعة كتوقف كل سباحة بوحدها عند 400م و200م، وفالآخر كتعطيك وتيرة CSS لكل 100م مع وتيرة التحمل (Z2) و VO2max (Z4). آخر نتيجة كتبقى مكتوبة فزر الاختبار.
+- **بداية تلقائية فالماء** (اختياري): فعّلي «بداية تلقائية فالماء» ثم «ابدأ السباحة»؛ الساعة كتبقى فالانتظار وكتبدا الحصة بوحدها ملي اليد كتدخل للماء (شي ثانية ونص تحت الماء)، وكتهتز. الكشف بالبارومتر: كل 1 سم ديال الماء كيزيد تقريباً 1 hPa فالضغط. الانتظار كيتلغى من بعد 30 دقيقة.
 - ما كاينش: التعرف التلقائي على نوع السباحة (حرة / صدر…) والراحة التلقائية — الساعة ما كتعطيش هاد المعلومات للتطبيقات الخارجية.
 
 **كيفاش كيحسب الأطوال:**
@@ -76,5 +77,5 @@
 - `protocol/Proto.kt` — tiny hand-written protobuf encoder/decoder (no protobuf toolchain needed).
 - `protocol/CertificateManager.kt` — generates the client certificate once (BouncyCastle) and keeps it in app storage, so the TV stays paired.
 - `protocol/SamsungClient.kt` — Samsung Tizen WebSocket API (wss 8002, falls back to ws 8001); the TV asks the user to allow the app once and returns a token that is saved for later. Samsung TVs are discovered with SSDP.
-- `wear/` — Wear OS swim tracker: `SwimSession.kt` (pure distance / pace / SWOLF maths, unit tested), `SwimService.kt` (Health Services `SWIMMING_POOL` exercise with a manual-count fallback), `SwimActivity.kt` (watch UI).
+- `wear/` — Wear OS swim tracker: `SwimSession.kt` (pure distance / pace / SWOLF maths, unit tested), `WaterDetector.kt` (barometer-based water detection for auto start, unit tested), `SwimService.kt` (Health Services `SWIMMING_POOL` exercise with a manual-count fallback), `SwimActivity.kt` (watch UI).
 - `app/src/test/.../FakeTvTest.kt`, `FakeSamsungTest.kt` — run pairing and remote sessions against simulated TVs.

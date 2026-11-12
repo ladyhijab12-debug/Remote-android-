@@ -43,6 +43,10 @@
     <string name="css_rest">CSS: ارتاح 10 دقائق ثم «انطلاق» لـ 200 م</string>
     <string name="css_done_fmt">CSS = %1$s /100م — أنهِ الحصة</string>
     <string name="css_failed">CSS: الاختبار ما كملش صحيح — عاودو</string>
+    <string name="auto_off">بداية تلقائية فالماء: متوقف</string>
+    <string name="auto_on">بداية تلقائية فالماء: مفعّل</string>
+    <string name="waiting_water">فانتظار الماء…\n\nالحصة غادي تبدا بوحدها ملي تدخلي يدك فالماء. الساعة غادي تهتز.\n\nالانتظار كيتلغى من بعد 30 دقيقة.</string>
+    <string name="cancel">إلغاء</string>
     <string name="lock_off">قفل اللمس فالماء: متوقف</string>
     <string name="lock_on">قفل اللمس فالماء: مفعّل</string>
     <string name="locked_hint">اللمس مقفول أثناء السباحة: ضغطة طويلة على «راحة» أو الزر الجانبي</string>

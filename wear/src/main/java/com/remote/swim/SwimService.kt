@@ -188,6 +188,9 @@ class SwimService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Every start/arm request arrives through startForegroundService, which must always be
+        // answered with startForeground, even when the request itself turns out to be a repeat.
+        if (intent?.action == ACTION_START || intent?.action == ACTION_ARM) goForeground()
         when (intent?.action) {
             ACTION_START -> start(intent.getIntExtra(EXTRA_POOL, 50), intent.getBooleanExtra(EXTRA_CSS, false))
             ACTION_PAUSE -> pause()
@@ -225,7 +228,6 @@ class SwimService : Service() {
         if (SwimTracker.state != SwimTracker.State.IDLE && SwimTracker.state != SwimTracker.State.ENDED) return
         val sensors = getSystemService(SensorManager::class.java)
         val barometer = sensors?.getDefaultSensor(Sensor.TYPE_PRESSURE)
-        goForeground()
         if (barometer == null) {
             // No barometer: behave like a normal start rather than wait for ever.
             start(poolLengthM, cssTest)
@@ -262,7 +264,8 @@ class SwimService : Service() {
     }
 
     private fun start(poolLengthM: Int, cssTest: Boolean) {
-        if (SwimTracker.state == SwimTracker.State.ACTIVE || SwimTracker.state == SwimTracker.State.PAUSED) return
+        // A second tap on a wet screen must not start a second workout on top of the first.
+        if (SwimTracker.state != SwimTracker.State.IDLE && SwimTracker.state != SwimTracker.State.ENDED) return
         ending = false
         SwimTracker.begin(poolLengthM, cssTest)
         SwimTracker.onAlert = {
@@ -284,7 +287,9 @@ class SwimService : Service() {
         client = exercise
         exercise.getCapabilitiesAsync().then(
             { caps ->
-                if (ExerciseType.SWIMMING_POOL !in caps.supportedExerciseTypes) {
+                if (SwimTracker.state != SwimTracker.State.STARTING) {
+                    // Ended while the watch was still answering: nothing to start.
+                } else if (ExerciseType.SWIMMING_POOL !in caps.supportedExerciseTypes) {
                     startManual()
                 } else {
                     val supported = caps.getExerciseTypeCapabilities(ExerciseType.SWIMMING_POOL).supportedDataTypes
@@ -407,6 +412,9 @@ class SwimService : Service() {
         // Book a rest still running, so it shows in the report.
         SwimTracker.session?.endRest(SwimTracker.activeMillis())
         SwimTracker.set(SwimTracker.State.ENDED)
+        // Saved here, not by the screen: the swim must reach the history exactly once, whether
+        // the screen is showing, closed, or recreated while the report is up.
+        SwimTracker.session?.let { SwimHistory.save(this, it) }
         try {
             client?.clearUpdateCallbackAsync(callback)
         } catch (e: Exception) {

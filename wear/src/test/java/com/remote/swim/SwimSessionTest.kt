@@ -281,6 +281,33 @@ class SwimSessionTest {
     }
 
     @Test
+    fun pressDuringRestIsNotALength() {
+        val s = SwimSession(50)
+        s.addManualLength(50_000)
+        s.startRest(51_000, finishLength = true)
+        assertEquals(false, s.addManualLength(80_000))
+        assertEquals(50, s.distanceM)
+    }
+
+    @Test
+    fun fastestLengthIgnoresDrillsAndEmptyLengths() {
+        val s = SwimSession(50)
+        s.onSensorLengths(1, 50_000)
+        s.startRest(60_000, finishLength = false)
+        s.onSensorLengths(3, 65_000) // two late lengths share the 10 s before the rest
+        s.endRest(70_000)
+        s.startDrill(70_000)
+        s.stopDrill(78_000)
+        s.saveDrill(2) // 4 s per drill length, quicker than any swum one
+        assertEquals(listOf(50_000L, 5_000L, 5_000L, 4_000L, 4_000L), s.lengths.map { it.millis })
+        assertEquals(2, s.bestLength!!.number)
+
+        val t = SwimSession(50)
+        t.onSensorLengths(2, 0) // reported before any time has passed
+        assertNull(t.bestLength)
+    }
+
+    @Test
     fun distanceAlerts() {
         assertEquals(true, SwimFormat.crossedAlert(50, 100, 100))
         assertEquals(false, SwimFormat.crossedAlert(100, 150, 100))

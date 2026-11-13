@@ -43,7 +43,6 @@ class SwimActivity : Activity() {
             render()
         }
     private var showingHistory = false
-    private var savedSession: SwimSession? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,8 +154,10 @@ class SwimActivity : Activity() {
             val wasLong = longPressed
             longPressed = false
             if (!wasLong && !event.isCanceled) {
-                val resting = SwimTracker.session?.isResting == true
-                if (resting || SwimTracker.autoLengths) toggleRest() else addLength()
+                val s = SwimTracker.session
+                // A press ends a rest or a drill; otherwise it is rest (auto) or a length (manual).
+                if (s?.isResting == true || s?.isDrilling == true || SwimTracker.autoLengths) toggleRest()
+                else addLength()
             }
             return true
         }
@@ -175,14 +176,19 @@ class SwimActivity : Activity() {
             toggleDrill()
             return
         }
+        val before = SwimTracker.session?.isResting
         SwimTracker.toggleRest()
-        buzz(if (SwimTracker.session?.isResting == true) 400 else 200)
+        val after = SwimTracker.session?.isResting
+        // Buzz only when something happened: long for rest, short for go.
+        if (after != before) buzz(if (after == true) 400 else 200)
     }
 
     private fun toggleDrill() {
         if (SwimTracker.state != SwimTracker.State.ACTIVE) return
+        val before = SwimTracker.session?.isDrilling
         SwimTracker.toggleDrill()
-        buzz(if (SwimTracker.session?.isDrilling == true) 200 else 400)
+        val after = SwimTracker.session?.isDrilling
+        if (after != before) buzz(if (after == true) 200 else 400)
     }
 
     private fun addLength() {
@@ -257,11 +263,6 @@ class SwimActivity : Activity() {
                 text(R.id.textDone, getString(R.string.back))
             }
             session != null && state == SwimTracker.State.ENDED -> {
-                if (savedSession !== session) {
-                    savedSession = session
-                    if (session.lengths.isNotEmpty()) SwimHistory.save(this, session)
-                    session.cssMillisPer100?.let { prefs().edit().putLong(KEY_CSS, it).apply() }
-                }
                 show(Screen.TEXT)
                 text(R.id.textBody, SwimFormat.summary(session))
                 text(R.id.textDone, getString(R.string.done))
@@ -371,7 +372,7 @@ class SwimActivity : Activity() {
         private const val KEY_ALERT = "alert"
         private const val KEY_LOCK = "lock"
         private const val KEY_AUTO = "auto"
-        private const val KEY_CSS = "css"
+        private const val KEY_CSS = SwimHistory.KEY_CSS
         private val ALERT_STEPS = listOf(0, 100, 200, 400, 500, 1000)
         private val SWIM_KEYS = setOf(
             KeyEvent.KEYCODE_BACK,
@@ -386,10 +387,14 @@ class SwimActivity : Activity() {
 /** The last swims, kept on the watch as ready-to-read text. */
 object SwimHistory {
     private const val KEY = "history"
+    const val KEY_CSS = "css"
     private const val SEPARATOR = "\u0001"
     private const val KEEP = 30
 
+    /** Adds the swim to the history and remembers its CSS result; an empty swim is not kept. */
     fun save(context: Context, session: SwimSession) {
+        session.cssMillisPer100?.let { prefs(context).edit().putLong(KEY_CSS, it).apply() }
+        if (session.lengths.isEmpty()) return
         val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date(session.startedAtEpochMs))
         val entry = buildString {
             append(date).append('\n')

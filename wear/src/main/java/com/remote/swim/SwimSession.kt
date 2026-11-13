@@ -105,7 +105,8 @@ class SwimSession(
         get() = if (distanceM == 0) null else swimMillis * 100 / distanceM
 
     val lastLength: SwimLength? get() = done.lastOrNull()
-    val bestLength: SwimLength? get() = done.minByOrNull { it.millis }
+    /** Fastest swum length; drills and lengths with no time of their own do not compete. */
+    val bestLength: SwimLength? get() = done.filter { !it.drill && it.millis > 0 }.minByOrNull { it.millis }
 
     val avgStrokesPerLength: Double?
         get() {
@@ -171,7 +172,7 @@ class SwimSession(
      * length is a bounce or a stray touch, not a length, and is ignored; returns whether it counted.
      */
     fun addManualLength(atActiveMillis: Long): Boolean {
-        if (drillStartMillis != null) return false
+        if (drillStartMillis != null || isResting) return false
         if (atActiveMillis - lengthStartMillis < MIN_LENGTH_MILLIS) return false
         addLengths(1, atActiveMillis)
         return true

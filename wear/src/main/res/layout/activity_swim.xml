@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Setup -->
+    <ScrollView
+        android:id="@+id/screenSetup"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="34dp"
+            android:paddingEnd="34dp"
+            android:paddingTop="30dp"
+            android:paddingBottom="48dp">
+
+            <TextView
+                style="@style/Label"
+                android:text="@string/pool_length" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/poolMinus"
+                    style="@style/Btn"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="−"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/poolValue"
+                    style="@style/Value"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:textSize="26sp" />
+
+                <TextView
+                    android:id="@+id/poolPlus"
+                    style="@style/Btn"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:text="+"
+                    android:textSize="22sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/pool25"
+                    style="@style/Btn"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_weight="1"
+                    android:text="25" />
+
+                <TextView
+                    android:id="@+id/pool50"
+                    style="@style/Btn"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:text="50" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/alertBtn"
+                style="@style/Btn"
+                android:layout_height="44dp"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/autoBtn"
+                style="@style/Btn"
+                android:layout_height="44dp"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/lockBtn"
+                style="@style/Btn"
+                android:layout_height="44dp"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/startBtn"
+                style="@style/Btn.Main"
+                android:text="@string/start" />
+
+            <TextView
+                android:id="@+id/cssBtn"
+                style="@style/Btn"
+                android:text="@string/css_test" />
+
+            <TextView
+                android:id="@+id/historyBtn"
+                style="@style/Btn"
+                android:text="@string/history" />
+
+            <TextView
+                android:id="@+id/setupMessage"
+                style="@style/Label"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Live workout -->
+    <ScrollView
+        android:id="@+id/screenLive"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="34dp"
+            android:paddingEnd="34dp"
+            android:paddingTop="26dp"
+            android:paddingBottom="56dp">
+
+            <TextView
+                android:id="@+id/liveStatus"
+                style="@style/Label"
+                android:textColor="@color/accent" />
+
+            <TextView
+                android:id="@+id/liveCss"
+                style="@style/Label"
+                android:textColor="@color/text"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/liveDistance"
+                style="@style/Value"
+                android:textColor="@color/accent"
+                android:textSize="44sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/liveTime"
+                style="@style/Value"
+                android:textSize="30sp" />
+
+            <TextView style="@style/Label" android:text="@string/interval" />
+            <TextView android:id="@+id/liveInterval" style="@style/Value" android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/restBtn"
+                style="@style/Btn.Main"
+                android:layout_height="60dp"
+                android:text="@string/rest"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/drillBtn"
+                style="@style/Btn"
+                android:text="@string/drill_start" />
+
+            <LinearLayout
+                android:id="@+id/drillPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/Label"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/drill_distance" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:layoutDirection="ltr"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/drillMinus"
+                        style="@style/Btn"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="−"
+                        android:textSize="22sp" />
+
+                    <TextView
+                        android:id="@+id/drillValue"
+                        style="@style/Value"
+                        android:layout_width="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/drillPlus"
+                        style="@style/Btn"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="+"
+                        android:textSize="22sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/drillSave"
+                    style="@style/Btn.Main"
+                    android:text="@string/drill_save" />
+            </LinearLayout>
+
+            <TextView style="@style/Label" android:layout_marginTop="8dp" android:text="@string/lengths" />
+            <TextView android:id="@+id/liveLengths" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/pace" />
+            <TextView android:id="@+id/livePace" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/interval_pace" />
+            <TextView android:id="@+id/liveIntervalPace" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/last_length" />
+            <TextView android:id="@+id/liveLast" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/heart_rate" />
+            <TextView android:id="@+id/liveHr" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/strokes" />
+            <TextView android:id="@+id/liveStrokes" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/stroke_rate" />
+            <TextView android:id="@+id/liveStrokeRate" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/dps" />
+            <TextView android:id="@+id/liveDps" style="@style/Value" />
+
+            <TextView style="@style/Label" android:text="@string/swolf" />
+            <TextView android:id="@+id/liveSwolf" style="@style/Value" />
+
+            <TextView
+                android:id="@+id/addLengthBtn"
+                style="@style/Btn"
+                android:layout_height="64dp"
+                android:text="@string/add_length"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/removeLengthBtn"
+                style="@style/Btn"
+                android:text="@string/remove_length" />
+
+            <TextView
+                android:id="@+id/pauseBtn"
+                style="@style/Btn"
+                android:text="@string/pause" />
+
+            <TextView
+                android:id="@+id/endBtn"
+                style="@style/Btn"
+                android:text="@string/end_hold" />
+
+            <TextView
+                android:id="@+id/liveMode"
+                style="@style/Label"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Summary and history -->
+    <ScrollView
+        android:id="@+id/screenText"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="34dp"
+            android:paddingEnd="34dp"
+            android:paddingTop="30dp"
+            android:paddingBottom="56dp">
+
+            <TextView
+                android:id="@+id/textBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="3dp"
+                android:textColor="@color/text"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/textDone"
+                style="@style/Btn.Main"
+                android:text="@string/done" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

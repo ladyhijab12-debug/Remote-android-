@@ -30,6 +30,9 @@ class FakeSamsungTest {
         tv.enqueue(MockResponse().withWebSocketUpgrade(object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) { webSocket.send(firstEvent) }
             override fun onMessage(webSocket: WebSocket, text: String) { received.add(text) }
+            // A real TV answers the close frame; without this the connection lingers and
+            // shutting the fake TV down times out.
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { webSocket.close(code, reason) }
         }))
     }
 

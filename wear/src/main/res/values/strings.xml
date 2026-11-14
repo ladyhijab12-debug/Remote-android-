@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">سباحتي</string>
+    <string name="pool_length">طول المسبح</string>
+    <string name="meters_fmt">%1$d م</string>
+    <string name="start">ابدأ السباحة</string>
+    <string name="history">السجل</string>
+    <string name="distance">المسافة</string>
+    <string name="time">الوقت</string>
+    <string name="lengths">الأطوال</string>
+    <string name="pace">المعدل / 100م</string>
+    <string name="last_length">آخر طول</string>
+    <string name="swolf">SWOLF</string>
+    <string name="strokes">الضربات</string>
+    <string name="heart_rate">النبض</string>
+    <string name="add_length">+ طول</string>
+    <string name="remove_length">− حذف آخر طول</string>
+    <string name="pause">إيقاف مؤقت</string>
+    <string name="resume">استمرار</string>
+    <string name="end_hold">إنهاء (ضغطة طويلة)</string>
+    <string name="end_hint">اضغط مطوّلاً للإنهاء</string>
+    <string name="done">تم</string>
+    <string name="back">رجوع</string>
+    <string name="paused">متوقف مؤقتاً</string>
+    <string name="starting">جاري التشغيل…</string>
+    <string name="mode_auto">الساعة تحسب الأطوال. الزر الجانبي: راحة / انطلاق</string>
+    <string name="mode_manual">عدّ يدوي. الزر الجانبي: ضغطة = طول، ضغطة طويلة = راحة</string>
+    <string name="rest">راحة</string>
+    <string name="go">انطلاق</string>
+    <string name="resting_fmt">راحة %1$s</string>
+    <string name="interval">المجموعة</string>
+    <string name="interval_pace">معدل المجموعة / 100م</string>
+    <string name="stroke_rate">ضربات / دقيقة</string>
+    <string name="dps">متر / ضربة</string>
+    <string name="drill_start">تمرين (Drill)</string>
+    <string name="drill_stop">إيقاف التمرين</string>
+    <string name="drilling_fmt">تمرين %1$s</string>
+    <string name="drill_distance">مسافة التمرين</string>
+    <string name="drill_save_first">دخّلي مسافة التمرين واحفظيه قبل الإنهاء</string>
+    <string name="drill_save">حفظ التمرين</string>
+    <string name="css_test">اختبار CSS</string>
+    <string name="css_test_fmt">اختبار CSS (آخر: %1$s)</string>
+    <string name="css_swim_fmt">CSS: اسبح %1$d م بأقصى جهد ثابت</string>
+    <string name="css_rest">CSS: ارتاح 10 دقائق ثم «انطلاق» لـ 200 م</string>
+    <string name="css_done_fmt">CSS = %1$s /100م — أنهِ الحصة</string>
+    <string name="css_failed">CSS: الاختبار ما كملش صحيح — عاودو</string>
+    <string name="auto_off">بداية تلقائية فالماء: متوقف</string>
+    <string name="auto_on">بداية تلقائية فالماء: مفعّل</string>
+    <string name="waiting_water">فانتظار الماء…\n\nالحصة غادي تبدا بوحدها ملي تدخلي يدك فالماء. الساعة غادي تهتز.\n\nالانتظار كيتلغى من بعد 30 دقيقة.</string>
+    <string name="cancel">إلغاء</string>
+    <string name="lock_off">قفل اللمس فالماء: متوقف</string>
+    <string name="lock_on">قفل اللمس فالماء: مفعّل</string>
+    <string name="locked_hint">اللمس مقفول أثناء السباحة: ضغطة طويلة على «راحة» أو الزر الجانبي</string>
+    <string name="saving">جاري الحفظ…</string>
+    <string name="alert_off">تنبيه المسافة: متوقف</string>
+    <string name="alert_fmt">تنبيه كل %1$d م</string>
+    <string name="need_permission">لازم تسمح بإذن النشاط البدني باش يخدم التتبع</string>
+    <string name="no_history">ما كاين حتى حصة مسجلة</string>
+    <string name="notif_title">حصة سباحة جارية</string>
+    <string name="notif_channel">تتبع السباحة</string>
+</resources>

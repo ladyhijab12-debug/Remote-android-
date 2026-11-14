@@ -59,6 +59,9 @@ object SwimTracker {
 
     private var alertedDistanceM = 0
 
+    /** Lengths picked on the drill distance screen; also used if the swim ends before saving. */
+    var drillLengths = 2
+
     // Swim time is known exactly at one instant and runs on from there while active.
     private var baseActiveMs = 0L
     private var baseWallMs = 0L
@@ -133,7 +136,9 @@ object SwimTracker {
     /** Start timing a drill, or stop the one running so its distance can be entered. */
     fun toggleDrill() {
         val s = session ?: return
-        if (state != State.ACTIVE || s.drillAwaitingDistance) return
+        if (s.drillAwaitingDistance) return
+        // A running drill can always be stopped, even while paused; starting one needs the clock.
+        if (state != State.ACTIVE && !(state == State.PAUSED && s.isDrilling)) return
         if (s.isDrilling) s.stopDrill(activeMillis()) else s.startDrill(activeMillis())
         notifyChanged()
     }
@@ -408,7 +413,15 @@ class SwimService : Service() {
 
     private fun finish() {
         handler.removeCallbacks(finishLater)
-        if (SwimTracker.state == SwimTracker.State.ENDED || SwimTracker.session == null) return
+        if (SwimTracker.state == SwimTracker.State.ENDED || SwimTracker.session == null) {
+            stopSelf()
+            return
+        }
+        // A drill cut short by the end of the swim is kept with the distance picked so far.
+        SwimTracker.session?.let {
+            it.stopDrill(SwimTracker.activeMillis())
+            if (it.drillAwaitingDistance) it.saveDrill(SwimTracker.drillLengths)
+        }
         // Book a rest still running, so it shows in the report.
         SwimTracker.session?.endRest(SwimTracker.activeMillis())
         SwimTracker.set(SwimTracker.State.ENDED)

@@ -36,6 +36,7 @@
     <string name="drill_stop">إيقاف التمرين</string>
     <string name="drilling_fmt">تمرين %1$s</string>
     <string name="drill_distance">مسافة التمرين</string>
+    <string name="drill_save_first">دخّلي مسافة التمرين واحفظيه قبل الإنهاء</string>
     <string name="drill_save">حفظ التمرين</string>
     <string name="css_test">اختبار CSS</string>
     <string name="css_test_fmt">اختبار CSS (آخر: %1$s)</string>

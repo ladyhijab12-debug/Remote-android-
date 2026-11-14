@@ -44,15 +44,13 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: TV Remote ${{ inputs.release_tag || github.ref_name }}
+          name: ${{ inputs.release_tag || github.ref_name }}
           files: |
             TV-Remote.apk
             Swim-Watch.apk
           body: |
-            ريموت لتلفزيون Android TV / Google TV.
-            حمّل ملف TV-Remote.apk تحت وثبّته على جوالك (اسمح بالتثبيت من مصادر غير معروفة).
-            الجوال والتلفزيون لازم يكونون على نفس الواي فاي.
+            Swim-Watch.apk — «سباحتي»: تطبيق السباحة لساعات Wear OS (Galaxy Watch Ultra). شوف README لطريقة التثبيت على الساعة.
 
-            Swim-Watch.apk: تطبيق السباحة لساعات Wear OS (Galaxy Watch Ultra) — شوف README لطريقة التثبيت.
+            TV-Remote.apk — ريموت لتلفزيون Android TV / Google TV و Samsung. ثبّته على جوالك (اسمح بالتثبيت من مصادر غير معروفة)؛ الجوال والتلفزيون لازم يكونون على نفس الواي فاي.
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest

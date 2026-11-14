@@ -37,9 +37,10 @@ class SwimActivity : Activity() {
     private var lockTouch = false
     private var autoStart = false
     private var wantCssTest = false
-    private var drillLengths = 2
+    private var drillLengths: Int
+        get() = SwimTracker.drillLengths
         set(value) {
-            field = value
+            SwimTracker.drillLengths = value
             render()
         }
     private var showingHistory = false
@@ -98,7 +99,14 @@ class SwimActivity : Activity() {
         // Wet screens produce stray taps, so ending takes a deliberate long press.
         click(R.id.endBtn) { Toast.makeText(this, R.string.end_hint, Toast.LENGTH_SHORT).show() }
         findViewById<View>(R.id.endBtn).setOnLongClickListener {
-            SwimService.send(this, SwimService.ACTION_END)
+            val s = SwimTracker.session
+            if (s?.isDrilling == true || s?.drillAwaitingDistance == true) {
+                // Ending now would guess the drill's distance: have it entered first.
+                SwimTracker.toggleDrill()
+                Toast.makeText(this, R.string.drill_save_first, Toast.LENGTH_SHORT).show()
+            } else {
+                SwimService.send(this, SwimService.ACTION_END)
+            }
             true
         }
         click(R.id.autoBtn) {
